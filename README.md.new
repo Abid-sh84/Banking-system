@@ -1,0 +1,148 @@
+# Modern Banking System
+
+A full-stack banking application with customer and banker interfaces.
+
+## Features
+
+- Customer Registration and Login
+- Customer Dashboard for account management
+- Transaction creation and tracking
+- Banker interface for customer management
+- Secure authentication with JWT
+
+## Technology Stack
+
+- **Frontend**: Vue.js 3, Vue Router, Pinia, Tailwind CSS
+- **Backend**: Node.js, Express.js, MySQL
+- **Authentication**: JWT (JSON Web Tokens)
+
+## Project Structure
+
+```
+project/
+│
+├── frontend/             # Frontend Vue.js codebase
+│   ├── src/              # Vue application source code
+│   ├── index.html        # HTML entry point
+│   └── vite.config.js    # Vite configuration
+│
+├── backend/              # Backend Node.js + Express codebase
+    ├── src/              # Express application source code
+    └── package.json      # Backend dependencies
+```
+
+## Setup Instructions
+
+1. **Clone the repository**
+
+2. **Install dependencies**
+
+   ```bash
+   # Install all dependencies (root, frontend, and backend)
+   npm run install:all
+   ```
+
+3. **Setup the environment variables**
+
+   Copy the example environment files and update them with your own values:
+
+   ```bash
+   # For the backend
+   cp backend/.env.example backend/.env
+   
+   # For the frontend
+   cp frontend/.env.example frontend/.env
+   ```
+
+   Update the backend `.env` file with your database credentials and JWT secret. Example:
+   
+   ```
+   # Server Configuration
+   PORT=5000
+   
+   # JWT Secret
+   JWT_SECRET=your_jwt_secret_here
+   
+   # Database Configuration (For MySQL)
+   DB_HOST=localhost
+   DB_USER=your_username
+   DB_PASSWORD=your_password
+   DB_NAME=bank
+   DB_PORT=3306
+   ```
+
+4. **Setup the database**
+
+   Create a MySQL database and make sure the credentials match those in your backend `.env` file.
+
+   Initialize the database:
+   ```bash
+   cd backend
+   npm run init-db
+   ```
+
+5. **Run the application**
+
+   From the root directory:
+   ```bash
+   # Run both frontend and backend
+   npm run dev
+
+   # Or run them separately
+   npm run dev:frontend
+   npm run dev:backend
+   ```
+
+   This will start:
+   - Backend server at http://localhost:5000
+   - Frontend development server at http://localhost:5173
+
+6. **Access the application**
+
+   Open your browser and navigate to http://localhost:5173
+
+## Project Structure Details
+
+### Frontend
+- `src/components/`: Reusable UI components
+- `src/pages/`: Vue components that represent pages
+- `src/stores/`: Pinia state management stores
+- `src/services/`: API service layer
+- `src/utils/`: Utility functions and helpers
+
+### Backend
+- `src/controllers/`: Request handlers for API endpoints
+- `src/models/`: Database models and queries
+- `src/routes/`: API route definitions
+- `src/middleware/`: Auth and validation middleware
+- `src/config/`: Database and app configuration
+- `src/utils/`: Utility functions for error handling and JWT
+
+## Usage Guide
+
+### Customer Account Registration
+
+1. Click on "Create Account" on the homepage
+2. Fill in the registration form with name, email, password, address, and phone number
+3. Submit the form to create an account
+4. You'll be automatically logged in and redirected to the dashboard
+
+### Login
+
+1. Navigate to the login page
+2. Enter your email and password
+3. Click "Sign in" to access your account
+
+### Test Accounts
+
+- **Customer**: 
+  - Email: customer@example.com
+  - Password: password123
+
+- **Banker**:
+  - Email: banker@example.com
+  - Password: password123
+
+- **Admin**:
+  - Email: admin@bank.com
+  - Password: adminpass123

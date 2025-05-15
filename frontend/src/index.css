@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #0A2463;
+  --primary-light: #1D3B8B;
+  --secondary: #1B998B;
+  --secondary-light: #25C4B3;
+  --accent: #FFCB47;
+  --accent-light: #FFD76B;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --dark: #111827;
+  --light: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB;
+  --gray-400: #9CA3AF;
+  --gray-500: #6B7280;
+}
+
+/* Add utility classes for components */
+@layer utilities {
+  .bg-primary {
+    background-color: var(--primary);
+  }
+  .text-primary {
+    color: var(--primary);
+  }
+  .bg-primary-light {
+    background-color: var(--primary-light);
+  }
+  .text-primary-light {
+    color: var(--primary-light);
+  }
+  .bg-primary-50 {
+    background-color: #eff6ff;
+  }
+  .bg-primary-100 {
+    background-color: #dbeafe;
+  }
+  .hover\:bg-primary-dark:hover {
+    background-color: #2563eb;
+  }
+  .focus\:ring-primary:focus {
+    --tw-ring-color: var(--primary);
+  }
+  .focus\:border-primary:focus {
+    border-color: var(--primary);
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: var(--dark);
+  background-color: var(--gray-100);
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+/* Custom classes */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-[#0A2463] text-white hover:bg-[#1D3B8B] focus:ring-[#0A2463];
+}
+
+.btn-secondary {
+  @apply bg-[#1B998B] text-white hover:bg-[#25C4B3] focus:ring-[#1B998B];
+}
+
+.btn-accent {
+  @apply bg-[#FFCB47] text-[#0A2463] hover:bg-[#FFD76B] focus:ring-[#FFCB47];
+}
+
+.btn-danger {
+  @apply bg-[#EF4444] text-white hover:bg-[#F87171] focus:ring-[#EF4444];
+}
+
+.btn-outline {
+  @apply border border-[#0A2463] text-[#0A2463] hover:bg-[#0A2463] hover:text-white focus:ring-[#0A2463];
+}
+
+.input {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A2463] focus:border-transparent;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg;
+}
+
+.badge {
+  @apply inline-block px-2 py-1 text-xs font-semibold rounded-full;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-error {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Glass effect for modals */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
