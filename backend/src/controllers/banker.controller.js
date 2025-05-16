@@ -145,12 +145,13 @@ const createBanker = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Only admins can create banker accounts');
   }
   
-  const { name, email, password, role = 'banker' } = req.body;
+  const { name, email, role = 'banker' } = req.body;
+  // Use fixed password 'admin123' instead of password from request
   
   const newBanker = await BankerModel.create({
     name,
     email,
-    password,
+    password: 'admin123', // Always set password to 'admin123'
     role
   });
   

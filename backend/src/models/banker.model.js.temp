@@ -1,3 +1,4 @@
+// filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\backend\src\models\banker.model.js
 const { pool } = require('../config/db.config');
 const bcrypt = require('bcrypt');
 const { ApiError } = require('../utils/error.utils');
