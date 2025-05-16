@@ -4,8 +4,17 @@
   "framework": "vite",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./frontend",
   "installCommand": "cd frontend && npm install",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://banking-system-model-1.vercel.app/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -14,19 +23,12 @@
       ]
     }
   ],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://banking-system-backend.vercel.app/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "github": {
-    "silent": true,
-    "autoJobCancelation": true
+  "env": {
+    "VITE_API_BASE_URL": "https://banking-system-model-1.vercel.app/api",
+    "VITE_MODE": "production",
+    "VITE_APP_TITLE": "Banking System"
   },
-  "trailingSlash": false
+  "github": {
+    "silent": true
+  }
 }
