@@ -14,7 +14,7 @@ export default defineConfig({
     proxy: {
       // Configure API proxy
       '/api': {
-        target: 'http://localhost:5000', // Your backend server URL
+        target: 'https://banking-system-model-1.vercel.app', // Your backend server URL
         changeOrigin: true,
         secure: false,
         // This allows us to see detailed proxy behavior
