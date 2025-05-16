@@ -22,12 +22,12 @@ This project uses a monorepo structure with separate deployments for frontend an
    - Go to your project settings in Vercel dashboard
    - Add the following environment variables:
      - `NODE_ENV`: Set to `production`
-     - `JWT_SECRET`: Your JWT secret key (e.g., `e1f4cf15351809c2e2d5b22016ee8be8224bcc104b4150b4b1d0e507f6b697c9`)
-     - `DB_HOST`: Your database host (e.g., `sql10.freesqldatabase.com`)
-     - `DB_USER`: Your database username (e.g., `sql10778941`)
+     - `JWT_SECRET`: Your JWT secret key (e.g., ``)
+     - `DB_HOST`: Your database host (e.g., ``)
+     - `DB_USER`: Your database username (e.g., ``)
      - `DB_PASSWORD`: Your database password 
-     - `DB_NAME`: Your database name (e.g., `sql10778941`)
-     - `DB_PORT`: Your database port (usually `3306`)
+     - `DB_NAME`: Your database name (e.g., ``)
+     - `DB_PORT`: Your database port (usually ``)
      - `FRONTEND_URL`: Frontend app URL (after deployment)
 
    > **Important**: There are two ways to set environment variables in Vercel:
