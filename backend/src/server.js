@@ -15,7 +15,13 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:5173'],
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:8080', 
+    'http://localhost:5173',
+    process.env.FRONTEND_URL || 'https://banking-system-frontend.vercel.app',
+    /\.vercel\.app$/  // Allow all vercel.app subdomains
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -26,6 +32,16 @@ app.use(cookieParser());
 // Home route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Banking API' });
+});
+
+// Health check endpoint for monitoring
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'up',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Import routes
