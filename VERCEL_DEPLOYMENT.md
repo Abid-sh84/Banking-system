@@ -22,13 +22,28 @@ This project uses a monorepo structure with separate deployments for frontend an
    - Go to your project settings in Vercel dashboard
    - Add the following environment variables:
      - `NODE_ENV`: Set to `production`
-     - `JWT_SECRET`: Your JWT secret key
-     - `DB_HOST`: Your database host
-     - `DB_USER`: Your database username 
-     - `DB_PASSWORD`: Your database password
-     - `DB_NAME`: Your database name (default: `bank`)
+     - `JWT_SECRET`: Your JWT secret key (e.g., `e1f4cf15351809c2e2d5b22016ee8be8224bcc104b4150b4b1d0e507f6b697c9`)
+     - `DB_HOST`: Your database host (e.g., `sql10.freesqldatabase.com`)
+     - `DB_USER`: Your database username (e.g., `sql10778941`)
+     - `DB_PASSWORD`: Your database password 
+     - `DB_NAME`: Your database name (e.g., `sql10778941`)
      - `DB_PORT`: Your database port (usually `3306`)
      - `FRONTEND_URL`: Frontend app URL (after deployment)
+
+   > **Important**: There are two ways to set environment variables in Vercel:
+   >
+   > **Method 1: Direct Environment Variables (Recommended for this project)**
+   > - In the Vercel project settings, go to the "Environment Variables" tab
+   > - Add each variable with its name and value directly
+   > - These values will be encrypted and securely stored by Vercel
+   >
+   > **Method 2: Using Vercel Secrets**
+   > - If your vercel.json has values like `"JWT_SECRET": "@jwt_secret"`, you need to create these secrets
+   > - Run `vercel secrets add jwt_secret "your-secret-value"` for each secret
+   > - You must create all referenced secrets before deployment
+   >
+   > **Troubleshooting**: If you see errors like "Environment Variable 'JWT_SECRET' references Secret 'jwt_secret', which does not exist", 
+   > either create the missing secrets using the Vercel CLI or update vercel.json to use direct environment variables.
 
 2. **Deploy Backend:**
    - In Vercel dashboard, choose "Add New" → "Project"
@@ -113,6 +128,55 @@ If you need to add more domains, update the CORS configuration in `backend/src/s
 - **Database Connection**: Make sure your database is accessible from Vercel's servers
 - **Environment Variables**: Verify all required environment variables are set correctly
 - **Build Failures**: Check your build logs in Vercel for specific errors
+
+### Environment Variable Secret References Error
+
+If you encounter an error like:
+```
+Error: Environment Variable "JWT_SECRET" references Secret "jwt_secret", which does not exist.
+```
+
+This means your vercel.json file is trying to use Vercel Secrets, but they haven't been created yet. You have two options:
+
+**Option 1: Create the missing secrets**
+```bash
+# Install Vercel CLI if you haven't already
+npm i -g vercel
+
+# Login to your Vercel account
+vercel login
+
+# Add each required secret
+vercel secrets add jwt_secret "your-jwt-secret-value"
+vercel secrets add db_host "your-db-host"
+vercel secrets add db_user "your-db-username"
+vercel secrets add db_password "your-db-password"
+vercel secrets add db_name "your-db-name"
+vercel secrets add db_port "3306"
+vercel secrets add frontend_url "https://your-frontend-url.vercel.app"
+```
+
+**Option 2: Update vercel.json to use direct environment variables**
+
+Edit your backend/vercel.json file and change:
+```json
+"env": {
+  "JWT_SECRET": "@jwt_secret",
+  "DB_HOST": "@db_host",
+  ...
+}
+```
+
+To:
+```json
+"env": {
+  "JWT_SECRET": "your-jwt-secret-value",
+  "DB_HOST": "your-db-host",
+  ...
+}
+```
+
+Then redeploy your project.
 
 ## Maintenance and Updates
 

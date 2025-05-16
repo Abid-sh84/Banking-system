@@ -16,15 +16,14 @@
       "src": "/(.*)",
       "dest": "src/server.js"
     }
-  ],
-  "env": {
+  ],  "env": {
     "NODE_ENV": "production",
-    "JWT_SECRET": "@jwt_secret",
-    "DB_HOST": "@db_host",
-    "DB_USER": "@db_user",
-    "DB_PASSWORD": "@db_password",
-    "DB_NAME": "@db_name",
-    "DB_PORT": "@db_port",
-    "FRONTEND_URL": "@frontend_url"
+    "JWT_SECRET": "e1f4cf15351809c2e2d5b22016ee8be8224bcc104b4150b4b1d0e507f6b697c9",
+    "DB_HOST": "sql10.freesqldatabase.com",
+    "DB_USER": "sql10778941",
+    "DB_PASSWORD": "Mr8waCW2l7",
+    "DB_NAME": "sql10778941",
+    "DB_PORT": "3306",
+    "FRONTEND_URL": "https://banking-system-frontend.vercel.app"
   }
 }
