@@ -22,12 +22,11 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "VITE_API_BASE_URL": "@vite_api_base_url",
+  ],  "env": {
+    "VITE_API_BASE_URL": "https://banking-system-model-1.vercel.app/api",
     "VITE_MODE": "production",
     "VITE_APP_TITLE": "Banking System",
-    "VITE_SITE_URL": "@vite_site_url"
+    "VITE_SITE_URL": "https://banking-system-frontend.vercel.app"
   },
   "github": {
     "silent": true,

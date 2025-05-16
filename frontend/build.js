@@ -7,12 +7,12 @@ console.log('Running pre-build checks and setup...');
 // Ensure we have a .env file for production
 if (!fs.existsSync(path.join(__dirname, '.env.production'))) {
   console.log('Creating .env.production from example...');
-  
-  const envContent = 
+    const envContent = 
 `# Production environment variables
-VITE_API_BASE_URL=${process.env.VITE_API_BASE_URL || 'https://banking-system-backend.vercel.app/api'}
+VITE_API_BASE_URL=${process.env.VITE_API_BASE_URL || 'https://banking-system-model-1.vercel.app/api'}
 VITE_MODE=production
-VITE_APP_TITLE=Banking System`;
+VITE_APP_TITLE=Banking System
+VITE_SITE_URL=${process.env.VITE_SITE_URL || 'https://banking-system-frontend.vercel.app'}`;
 
   fs.writeFileSync(path.join(__dirname, '.env.production'), envContent);
   console.log('.env.production created successfully!');
@@ -37,12 +37,11 @@ fs.writeFileSync(path.join(__dirname, 'dist', '_redirects'), redirectsContent);
 console.log('Created _redirects file for SPA routing');
 
 // Create a robots.txt if it doesn't exist
-if (!fs.existsSync(path.join(__dirname, 'dist', 'robots.txt'))) {
-  const robotsContent = 
+if (!fs.existsSync(path.join(__dirname, 'dist', 'robots.txt'))) {  const robotsContent = 
 `User-agent: *
 Allow: /
 
-Sitemap: ${process.env.VITE_SITE_URL || 'https://banking-system.vercel.app'}/sitemap.xml`;
+Sitemap: ${process.env.VITE_SITE_URL || 'https://banking-system-frontend.vercel.app'}/sitemap.xml`;
   
   fs.writeFileSync(path.join(__dirname, 'dist', 'robots.txt'), robotsContent);
   console.log('Created robots.txt file');

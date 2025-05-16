@@ -131,9 +131,13 @@ If you need to add more domains, update the CORS configuration in `backend/src/s
 
 ### Environment Variable Secret References Error
 
-If you encounter an error like:
+If you encounter errors like:
 ```
 Error: Environment Variable "JWT_SECRET" references Secret "jwt_secret", which does not exist.
+```
+or 
+```
+Error: Environment Variable "VITE_API_BASE_URL" references Secret "vite_api_base_url", which does not exist.
 ```
 
 This means your vercel.json file is trying to use Vercel Secrets, but they haven't been created yet. You have two options:
@@ -146,9 +150,19 @@ npm i -g vercel
 # Login to your Vercel account
 vercel login
 
-# Add each required secret
+# For backend secrets:
 vercel secrets add jwt_secret "your-jwt-secret-value"
 vercel secrets add db_host "your-db-host"
+vercel secrets add db_user "your-db-username"
+vercel secrets add db_password "your-db-password"
+vercel secrets add db_name "your-db-name"
+vercel secrets add db_port "3306"
+vercel secrets add frontend_url "https://your-frontend-url.vercel.app"
+
+# For frontend secrets:
+vercel secrets add vite_api_base_url "https://your-backend-url.vercel.app/api"
+vercel secrets add vite_site_url "https://your-frontend-url.vercel.app"
+```
 vercel secrets add db_user "your-db-username"
 vercel secrets add db_password "your-db-password"
 vercel secrets add db_name "your-db-name"
@@ -172,6 +186,22 @@ To:
 "env": {
   "JWT_SECRET": "your-jwt-secret-value",
   "DB_HOST": "your-db-host",
+  ...
+}
+```
+
+For frontend deployment, edit your frontend/vercel.json file and change:
+```json
+"env": {
+  "VITE_API_BASE_URL": "@vite_api_base_url",
+  ...
+}
+```
+
+To:
+```json
+"env": {
+  "VITE_API_BASE_URL": "https://your-backend-url.vercel.app/api",
   ...
 }
 ```
