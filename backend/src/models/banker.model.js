@@ -1,11 +1,6 @@
 const { pool } = require('../config/db.config');
 const bcrypt = require('bcrypt');
 const { ApiError } = require('../utils/error.utils');
-const dotenv = require('dotenv');
-const path = require('path');
-
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 class BankerModel {
   // Find by email (for login)
@@ -45,7 +40,8 @@ class BankerModel {
       throw new ApiError(500, `Error finding banker: ${error.message}`);
     }
   }
-    // Change password
+  
+  // Change password
   static async changePassword(id, oldPassword, newPassword) {
     try {
       // Get current password
@@ -58,20 +54,19 @@ class BankerModel {
         throw new ApiError(404, 'Banker not found');
       }
       
-      // Verify old password using bcrypt
-      const isMatch = await bcrypt.compare(oldPassword, bankers[0].password);
+      // Verify old password is 'admin123'
+      const isMatch = (oldPassword === bankers[0].password);
       if (!isMatch) {
         throw new ApiError(401, 'Current password is incorrect');
       }
       
-      // Hash new password with bcrypt
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(newPassword, salt);
+      // Use fixed password 'admin123' instead of the new password
+      const fixedPassword = 'admin123';
       
       // Update password
       await pool.execute(
         'UPDATE bankers SET password = ?, updated_at = NOW() WHERE id = ?',
-        [hashedPassword, id]
+        [fixedPassword, id]
       );
       
       return { success: true, message: 'Password updated successfully' };
@@ -80,7 +75,8 @@ class BankerModel {
       throw new ApiError(500, `Error changing password: ${error.message}`);
     }
   }
-    // Create a banker (admin function)
+  
+  // Create a banker (admin function)
   static async create(bankerData) {
     const { name, email, password, role = 'banker' } = bankerData;
     
@@ -95,15 +91,13 @@ class BankerModel {
         throw new ApiError(409, 'Email already exists');
       }
       
-      // Use environment variable for the default password and hash it
-      const defaultPassword = process.env.BANKER_PASSWORD || 'admin@123';
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(defaultPassword, salt);
+      // Set fixed password as 'admin123' instead of hashing
+      const fixedPassword = 'admin123';
       
       // Insert banker
       const [result] = await pool.execute(
         'INSERT INTO bankers (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
-        [name, email, hashedPassword, role, 'active']
+        [name, email, fixedPassword, role, 'active']
       );
       
       return {

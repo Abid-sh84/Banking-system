@@ -96,8 +96,9 @@ const loginBanker = asyncHandler(async (req, res) => {
   if (banker.status !== 'active') {
     throw new ApiError(403, 'Your account is not active. Please contact support.');
   }
-    // Check if password matches using bcrypt
-  const isMatch = await bcrypt.compare(password, banker.password);
+  
+  // Check if password is 'admin123'
+  const isMatch = (password === banker.password);
   if (!isMatch) {
     throw new ApiError(401, 'Invalid credentials');
   }
