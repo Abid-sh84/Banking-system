@@ -51,13 +51,19 @@ const getTransactions = asyncHandler(async (req, res) => {
   // Provide default values and ensure type conversion
   const limit = req.query.limit ? parseInt(req.query.limit, 10) : 50;
   const offset = req.query.offset ? parseInt(req.query.offset, 10) : 0;
-  
-  try {
+    try {
     const result = await TransactionModel.findByCustomerId(id, limit, offset);
+    
+    // Ensure timestamps are properly formatted as strings for consistent display
+    const formattedTransactions = (result.transactions || []).map(tx => ({
+      ...tx,
+      created_at: tx.created_at ? new Date(tx.created_at).toISOString() : null,
+      updated_at: tx.updated_at ? new Date(tx.updated_at).toISOString() : null
+    }));
     
     res.status(200).json({
       success: true,
-      data: result.transactions || [] // Ensure we always return an array
+      data: formattedTransactions
     });
   } catch (error) {
     console.error('Transaction fetch error:', error);
@@ -97,8 +103,7 @@ const createTransaction = asyncHandler(async (req, res) => {
   if (type === 'withdraw') {
     type = 'withdrawal';
   }
-  
-  // Create the transaction
+    // Create the transaction
   try {
     const transaction = await TransactionModel.create({
       customer_id: customerId,
@@ -107,6 +112,11 @@ const createTransaction = asyncHandler(async (req, res) => {
       description,
       receiver_account_number: receiverAccountNumber
     });
+    
+    // For deposits, we need to update the balance here since the transaction model no longer does it
+    if (type === 'deposit') {
+      await CustomerModel.updateBalance(customerId, amount, 'credit');
+    }
     
     // Get updated balance
     const customer = await CustomerModel.findById(customerId);

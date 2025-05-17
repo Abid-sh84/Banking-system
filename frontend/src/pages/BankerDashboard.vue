@@ -1,37 +1,38 @@
-<!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\src\pages\BankerDashboard.vue -->
-<template>  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\frontend\src\pages\BankerDashboard.vue -->
+<template>
+  <div class="w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <Loader2 class="h-12 w-12 text-indigo-600 animate-spin" />
+      <Loader2 class="h-12 w-12 text-primary animate-spin" />
     </div>
     
-    <div v-else-if="error" class="bg-white shadow overflow-hidden sm:rounded-lg p-6">
+    <div v-else-if="error" class="bg-white shadow overflow-hidden sm:rounded-lg p-6 max-w-3xl mx-auto">
       <div class="text-red-600 font-medium mb-2">Error loading data</div>
       <p class="text-gray-700">{{ error }}</p>
       <button 
         @click="fetchData" 
-        class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition duration-200"
       >
         Retry
       </button>
     </div>
     
     <template v-else>
-      <!-- Banker Dashboard Header -->
-      <div class="mb-8">
-        <h1 class="text-2xl font-semibold text-gray-900">Banker Dashboard</h1>
-        <p class="mt-1 text-sm text-gray-500">
+      <!-- Banker Dashboard Header with animation -->
+      <div class="mb-8 animate-slideUp">
+        <h1 class="text-2xl font-semibold text-gray-900 sm:text-3xl">Banker Dashboard</h1>
+        <p class="mt-1 text-sm text-gray-500 sm:text-base">
           Manage customers and view account activities.
         </p>
       </div>
       
-      <!-- Overview Cards -->
+      <!-- Overview Cards with hover effects -->
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
         <!-- Total Customers -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow duration-300 transform hover:scale-[1.02]">
           <div class="px-4 py-5 sm:p-6">
             <div class="flex items-center">
               <div class="flex-shrink-0 bg-indigo-100 rounded-md p-3">
-                <Users class="h-6 w-6 text-indigo-600" />
+                <Users class="h-6 w-6 text-primary" />
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
@@ -50,16 +51,16 @@
         </div>
         
         <!-- Total Deposits -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow duration-300 transform hover:scale-[1.02]">
           <div class="px-4 py-5 sm:p-6">
             <div class="flex items-center">
               <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
                 <DollarSign class="h-6 w-6 text-green-600" />
               </div>
               <div class="ml-5 w-0 flex-1">
-                <dl>
+                <dl>                  
                   <dt class="text-sm font-medium text-gray-500 truncate">
-                    Total Deposits (Today)
+                    Total Deposits (Last 30 Days)
                   </dt>
                   <dd>
                     <div class="text-lg font-medium text-gray-900">
@@ -73,16 +74,16 @@
         </div>
         
         <!-- Total Withdrawals -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow duration-300 transform hover:scale-[1.02]">
           <div class="px-4 py-5 sm:p-6">
             <div class="flex items-center">
               <div class="flex-shrink-0 bg-red-100 rounded-md p-3">
                 <DollarSign class="h-6 w-6 text-red-600" />
               </div>
               <div class="ml-5 w-0 flex-1">
-                <dl>
+                <dl>                  
                   <dt class="text-sm font-medium text-gray-500 truncate">
-                    Total Withdrawals (Today)
+                    Total Withdrawals (Last 30 Days)
                   </dt>
                   <dd>
                     <div class="text-lg font-medium text-gray-900">
@@ -96,9 +97,9 @@
         </div>
       </div>
       
-      <!-- Customers List -->
-      <div class="bg-white shadow overflow-hidden sm:rounded-md">
-        <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+      <!-- Customers List with enhanced responsive design -->
+      <div class="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
+        <div class="px-4 py-5 sm:px-6 flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-3 lg:space-y-0">
           <div>
             <h2 class="text-lg leading-6 font-medium text-gray-900">Customers</h2>
             <p class="mt-1 text-sm text-gray-500">
@@ -106,12 +107,12 @@
             </p>
           </div>
           <div>
-            <div class="relative">
+            <div class="relative max-w-xs w-full lg:max-w-md">
               <input
                 v-model="searchTerm"
                 type="text"
                 placeholder="Search customers..."
-                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md"
+                class="shadow-sm focus:ring-primary focus:border-primary block w-full pr-10 sm:text-sm border-gray-300 rounded-md transition-all duration-200"
               />
               <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <Search class="h-5 w-5 text-gray-400" />
@@ -120,20 +121,27 @@
           </div>
         </div>
         <ul class="divide-y divide-gray-200">
-          <li v-if="filteredCustomers.length === 0" class="px-6 py-4 text-center text-gray-500">
-            No customers found
+          <li v-if="filteredCustomers.length === 0" class="px-6 py-8 text-center text-gray-500">
+            <div class="inline-flex items-center justify-center p-2 bg-gray-100 rounded-full mb-2">
+              <Search class="h-6 w-6 text-gray-400" />
+            </div>
+            <p class="text-sm">No customers found matching your search</p>
           </li>
-          <li v-for="customer in filteredCustomers" :key="customer.id" class="block hover:bg-gray-50">
+          <li 
+            v-for="customer in filteredCustomers" 
+            :key="customer.id" 
+            class="block hover:bg-gray-50 transition-colors duration-200"
+          >
             <div class="px-4 py-4 sm:px-6">
-              <div class="flex items-center justify-between">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center">
                   <div class="flex-shrink-0">
                     <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <User class="h-6 w-6 text-indigo-600" />
+                      <User class="h-6 w-6 text-primary" />
                     </div>
                   </div>
                   <div class="ml-4">
-                    <div class="text-sm font-medium text-indigo-600">
+                    <div class="text-sm font-medium text-primary">
                       {{ customer.name }}
                     </div>
                     <div class="text-sm text-gray-500">
@@ -141,14 +149,14 @@
                     </div>
                   </div>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex flex-col sm:flex-row mt-3 sm:mt-0 items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                   <div class="text-sm text-gray-900">
                     <div class="font-semibold">Balance</div>
                     <div>{{ formatCurrency(customer.balance) }}</div>
                   </div>
                   <router-link
                     :to="`/banker/customer/${customer.id}`"
-                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:scale-105"
                   >
                     View Details
                   </router-link>
@@ -157,6 +165,63 @@
             </div>
           </li>
         </ul>
+      </div>
+      
+      <!-- Recent Transactions - responsive table -->
+      <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
+        <div class="px-4 py-5 sm:px-6">
+          <h2 class="text-lg leading-6 font-medium text-gray-900">Recent Transactions</h2>
+          <p class="mt-1 text-sm text-gray-500">
+            View the most recent transactions across all accounts.
+          </p>
+        </div>
+        <div class="responsive-table">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="(transaction, index) in transactions.slice(0, 5)" :key="index">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ new Date(transaction.transaction_date || transaction.created_at).toLocaleDateString() }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ transaction.customer_name || 'Customer' }}</div>
+                  <div class="text-sm text-gray-500">ID: {{ transaction.customer_id || '-' }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span 
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                    :class="transaction.type === 'deposit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                  >
+                    {{ transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ formatCurrency(transaction.amount) }}
+                </td>
+              </tr>
+              <tr v-if="transactions.length === 0">
+                <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                  No recent transactions found
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </template>
   </div>
@@ -317,20 +382,28 @@ const fetchData = async () => {
           throw new Error('Invalid API response format');
         }
       }
-      
-      // Now fetch transactions data if customers were loaded successfully
+        // Now fetch transactions data if customers were loaded successfully
       if (customers.value.length > 0) {
         try {
-          const today = new Date().toISOString().split('T')[0];
-          const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
+          // Get a broader range of transactions to ensure we have data to display
+          // Start from 30 days ago to ensure we have enough transaction history
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          const startDate = thirtyDaysAgo.toISOString().split('T')[0];
           
-          console.log('Fetching transactions with dates:', { startDate: today, endDate: tomorrow });
+          // Include tomorrow to catch all of today's transactions 
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const endDate = tomorrow.toISOString().split('T')[0];
           
-          // Try with simpler approach first to avoid errors
+          console.log('Fetching transactions with dates:', { startDate, endDate });
+          
+          // Make the API call with the date range
           const txResponse = await api.get('/banker/transactions', {
             params: {
-              startDate: today,
-              endDate: tomorrow
+              startDate,
+              endDate,
+              limit: 100 // Get more transactions for better statistics
             }
           });
           
@@ -418,15 +491,25 @@ const customerStats = computed(() => {
   // Calculate today's deposits and withdrawals from actual transactions
   let totalDepositsToday = 0;
   let totalWithdrawalsToday = 0;
+  
+  console.log('Calculating stats from transactions:', transactions.value);
+  
   if (Array.isArray(transactions.value)) {
     transactions.value.forEach(transaction => {
-      if (transaction.type === 'deposit') {
-        totalDepositsToday += parseFloat(transaction.amount || 0);
-      } else if (transaction.type === 'withdrawal' || transaction.type === 'withdraw') {
-        totalWithdrawalsToday += parseFloat(transaction.amount || 0);
+      // Make sure to parse the amount as a number and handle any potential NaN values
+      const transactionAmount = parseFloat(transaction.amount || 0);
+      if (!isNaN(transactionAmount)) {
+        if (transaction.type === 'deposit') {
+          totalDepositsToday += transactionAmount;
+        } else if (transaction.type === 'withdrawal' || transaction.type === 'withdraw') {
+          totalWithdrawalsToday += transactionAmount;
+        }
       }
     });
   }
+  
+  console.log('Calculated deposits:', totalDepositsToday, 'withdrawals:', totalWithdrawalsToday);
+  
   return {
     total: customers.value.length || 0,
     totalDepositsToday: totalDepositsToday || 0,
@@ -445,16 +528,47 @@ const formatCurrency = (amount) => {
 </script>
 
 <style scoped>
-.animate-spin {
-  animation: spin 1s linear infinite;
+/* Custom scroll for mobile */
+@media (max-width: 640px) {
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+  }
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #cccccc;
+    border-radius: 10px;
+  }
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.transform {
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  transform: scale(var(--tw-scale-x), var(--tw-scale-y));
+}
+
+.hover\:scale-\[1\.02\]:hover {
+  --tw-scale-x: 1.02;
+  --tw-scale-y: 1.02;
+}
+
+.hover\:scale-105:hover {
+  --tw-scale-x: 1.05;
+  --tw-scale-y: 1.05;
 }
 </style>

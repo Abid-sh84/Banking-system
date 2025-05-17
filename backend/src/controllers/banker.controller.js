@@ -121,14 +121,20 @@ const getAllTransactions = asyncHandler(async (req, res) => {
         filters.endDate = endDateObj.toISOString().split('T')[0];
       }
     }
-    
-    // Find transactions with filters
+      // Find transactions with filters
     const result = await TransactionModel.findAll(limitNum, offsetNum, filters);
+    
+    // Ensure timestamps are properly formatted as strings
+    const formattedTransactions = result.transactions.map(tx => ({
+      ...tx,
+      created_at: tx.created_at ? new Date(tx.created_at).toISOString() : null,
+      updated_at: tx.updated_at ? new Date(tx.updated_at).toISOString() : null
+    }));
     
     res.status(200).json({
       success: true,
       data: {
-        transactions: result.transactions || [],
+        transactions: formattedTransactions || [],
         pagination: { limit: limitNum, offset: offsetNum, total: result.total || 0 }
       }
     });
@@ -146,12 +152,12 @@ const createBanker = asyncHandler(async (req, res) => {
   }
   
   const { name, email, role = 'banker' } = req.body;
-  // Use fixed password 'admin123' instead of password from request
+  // Use environment variable for password from .env file
   
   const newBanker = await BankerModel.create({
     name,
     email,
-    password: 'admin123', // Always set password to 'admin123'
+    // The default password is handled in the model where bcrypt is also applied
     role
   });
   
@@ -173,8 +179,7 @@ const createCustomerDeposit = asyncHandler(async (req, res) => {
   
   // Find customer to ensure they exist
   const customer = await CustomerModel.findById(id);
-  
-  // Create a deposit transaction
+    // Create a deposit transaction
   const transaction = await TransactionModel.create({
     customer_id: id,
     amount: parseFloat(amount),
@@ -183,7 +188,7 @@ const createCustomerDeposit = asyncHandler(async (req, res) => {
     status: 'completed'
   });
   
-  // Update customer balance
+  // Update customer balance - this is now the only place where balance is updated for deposits
   const updatedBalance = await CustomerModel.updateBalance(id, amount, 'credit');
   
   res.status(201).json({

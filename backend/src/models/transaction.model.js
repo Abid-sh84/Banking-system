@@ -62,12 +62,9 @@ class TransactionModel {
             receiver_id,
             status: 'completed',
             created_at: new Date()
-          };
-        } else if (type === 'deposit') {
-          // Add to customer's balance
-          await CustomerModel.updateBalance(customer_id, amount, 'credit');
-          
-          // Record the transaction
+          };        } else if (type === 'deposit') {
+          // Record the transaction only without updating the balance
+          // The balance update will be handled by the controller
           const [result] = await connection.execute(
             'INSERT INTO transactions (customer_id, amount, type, description, status) VALUES (?, ?, ?, ?, ?)',
             [customer_id, amount, type, description, 'completed']
@@ -75,7 +72,13 @@ class TransactionModel {
           
           await connection.commit();
           
-          return {
+          // Get the transaction with created_at from the database
+          const [createdTransaction] = await connection.execute(
+            'SELECT id, customer_id, amount, type, description, status, created_at FROM transactions WHERE id = ?',
+            [result.insertId]
+          );
+          
+          return createdTransaction[0] || {
             id: result.insertId,
             customer_id,
             amount,
@@ -83,12 +86,8 @@ class TransactionModel {
             description,
             status: 'completed',
             created_at: new Date()
-          };
-        } else if (type === 'withdrawal') {
-          // Deduct from customer's balance
-          await CustomerModel.updateBalance(customer_id, amount, 'debit');
-          
-          // Record the transaction
+          };        } else if (type === 'withdrawal') {
+          // Record the transaction only - let the controller handle balance updates
           const [result] = await connection.execute(
             'INSERT INTO transactions (customer_id, amount, type, description, status) VALUES (?, ?, ?, ?, ?)',
             [customer_id, amount, type, description, 'completed']
@@ -96,7 +95,13 @@ class TransactionModel {
           
           await connection.commit();
           
-          return {
+          // Get the transaction with created_at from the database
+          const [createdTransaction] = await connection.execute(
+            'SELECT id, customer_id, amount, type, description, status, created_at FROM transactions WHERE id = ?',
+            [result.insertId]
+          );
+          
+          return createdTransaction[0] || {
             id: result.insertId,
             customer_id,
             amount,

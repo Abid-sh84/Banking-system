@@ -111,8 +111,17 @@ const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   
   try {
+    // Log the input to help with debugging
+    console.log('Formatting date:', dateString, typeof dateString);
+    
+    // Handle different date formats
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Invalid date';
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date:', dateString);
+      return 'N/A';
+    }
     
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -122,8 +131,8 @@ const formatDate = (dateString) => {
       minute: '2-digit'
     }).format(date);
   } catch (e) {
-    console.error('Error formatting date:', e);
-    return 'Date error';
+    console.error('Error formatting date:', e, dateString);
+    return 'N/A';
   }
 };
 </script>

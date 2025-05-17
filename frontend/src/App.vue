@@ -2,8 +2,11 @@
 <template>
   <div class="app min-h-screen bg-gray-50">
     <Header />
-    <main>
-      <router-view />
+    <main class="pt-16">
+      <!-- Main content wrapper with proper padding for the fixed navbar -->
+      <div class="max-w-7xl mx-auto">
+        <router-view />
+      </div>
     </main>
   </div>
 </template>
@@ -50,10 +53,33 @@ onMounted(async () => {
 </script>
 
 <style>
-/* These styles will be global */
+/* Global styles for handling fixed navbar spacing */
 body {
-  font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+/* Smooth scrolling for the entire site */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure the page content fills the viewport */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+}
+
+/* Apply consistent container styles */
+@media (max-width: 640px) {
+  .max-w-7xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
 }
 </style>
