@@ -18,6 +18,7 @@
     }
   ],  "env": {
     "NODE_ENV": "production",
+    "BANKER_PASSWORD": "admin@123",
     "JWT_SECRET": "e1f4cf15351809c2e2d5b22016ee8be8224bcc104b4150b4b1d0e507f6b697c9",
     "DB_HOST": "sql10.freesqldatabase.com",
     "DB_USER": "sql10778941",
