@@ -52,16 +52,15 @@ class BankerModel {
       
       if (bankers.length === 0) {
         throw new ApiError(404, 'Banker not found');
-      }
-      
-      // Verify old password is 'admin123'
+      }      
+      // Verify old password matches the banker's password
       const isMatch = (oldPassword === bankers[0].password);
       if (!isMatch) {
         throw new ApiError(401, 'Current password is incorrect');
       }
       
-      // Use fixed password 'admin123' instead of the new password
-      const fixedPassword = 'admin123';
+      // Use environment variable for password instead of hardcoding
+      const bankerPassword = process.env.BANKER_PASSWORD ;
       
       // Update password
       await pool.execute(
@@ -89,15 +88,14 @@ class BankerModel {
       
       if (existingBankers.length > 0) {
         throw new ApiError(409, 'Email already exists');
-      }
-      
-      // Set fixed password as 'admin123' instead of hashing
-      const fixedPassword = 'admin123';
+      }      
+      // Use environment variable for password instead of hardcoding
+      const bankerPassword = process.env.BANKER_PASSWORD;
       
       // Insert banker
       const [result] = await pool.execute(
         'INSERT INTO bankers (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
-        [name, email, fixedPassword, role, 'active']
+        [name, email, bankerPassword, role, 'active']
       );
       
       return {

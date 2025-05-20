@@ -87,18 +87,17 @@ async function initializeDatabase() {
     // Check if admin exists
     const [adminResult] = await connection.query(
       'SELECT * FROM bankers WHERE role = "admin"'
-    );
-
-    // Create default admin if none exists
+    );    // Create default admin if none exists
     if (adminResult.length === 0) {
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
+      const bankerPassword = process.env.BANKER_PASSWORD;
+      const hashedPassword = await bcrypt.hash(bankerPassword, salt);
 
       await connection.query(
         'INSERT INTO bankers (name, email, password, role) VALUES (?, ?, ?, ?)',
         ['Admin User', 'admin@bank.com', hashedPassword, 'admin']
       );
-      console.log('Default admin user created: admin@bank.com / admin123');
+      console.log(`Default admin user created: admin@bank.com / ${bankerPassword}`);
     }
 
     // Check if test customer exists
