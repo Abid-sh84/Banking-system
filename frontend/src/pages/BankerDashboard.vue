@@ -118,6 +118,17 @@
                 <Search class="h-5 w-5 text-gray-400" />
               </div>
             </div>
+            <div class="flex mt-2 space-x-2">
+              <select
+                v-model="accountTypeFilter"
+                class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
+              >
+                <option value="">All Account Types</option>
+                <option value="savings">Savings</option>
+                <option value="current">Current</option>
+                <option value="fixed">Fixed Deposit</option>
+              </select>
+            </div>
           </div>
         </div>
         <ul class="divide-y divide-gray-200">
@@ -148,11 +159,23 @@
                       {{ customer.email }}
                     </div>
                   </div>
-                </div>
-                <div class="flex flex-col sm:flex-row mt-3 sm:mt-0 items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                </div>                <div class="flex flex-col sm:flex-row mt-3 sm:mt-0 items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                   <div class="text-sm text-gray-900">
                     <div class="font-semibold">Balance</div>
                     <div>{{ formatCurrency(customer.balance) }}</div>
+                  </div>
+                  <div class="text-sm">
+                    <span 
+                      class="px-2 py-1 text-xs rounded-full" 
+                      :class="{
+                        'bg-blue-100 text-blue-800': customer.account_type === 'savings',
+                        'bg-green-100 text-green-800': customer.account_type === 'current',
+                        'bg-purple-100 text-purple-800': customer.account_type === 'fixed',
+                        'bg-gray-100 text-gray-800': !customer.account_type
+                      }"
+                    >
+                      {{ formatAccountType(customer.account_type) }}
+                    </span>
                   </div>
                   <router-link
                     :to="`/banker/customer/${customer.id}`"
@@ -242,6 +265,7 @@ const router = useRouter();
 const customers = ref([]);
 const loading = ref(true);
 const searchTerm = ref('');
+const accountTypeFilter = ref(''); // New account type filter
 const error = ref('');
 const transactions = ref([]);
 
@@ -478,12 +502,23 @@ const useMockData = () => {
 
 // Computed properties
 const filteredCustomers = computed(() => {
-  if (!searchTerm.value) return customers.value;
-  const term = searchTerm.value.toLowerCase();
-  return customers.value.filter(customer => 
-    customer.name.toLowerCase().includes(term) || 
-    customer.email.toLowerCase().includes(term)
-  );
+  let filtered = customers.value;
+  
+  // Filter by search term
+  if (searchTerm.value) {
+    const term = searchTerm.value.toLowerCase();
+    filtered = filtered.filter(customer => 
+      customer.name.toLowerCase().includes(term) || 
+      customer.email.toLowerCase().includes(term)
+    );
+  }
+  
+  // Filter by account type
+  if (accountTypeFilter.value) {
+    filtered = filtered.filter(customer => customer.account_type === accountTypeFilter.value);
+  }
+  
+  return filtered;
 });
 
 const customerStats = computed(() => {
@@ -519,11 +554,20 @@ const customerStats = computed(() => {
 
 // Helper methods
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'INR',
     minimumFractionDigits: 2
   }).format(amount || 0);
+};
+
+const formatAccountType = (type) => {
+  switch (type) {
+    case 'savings': return 'Savings';
+    case 'current': return 'Current';
+    case 'fixed': return 'Fixed Deposit';
+    default: return 'Standard';
+  }
 };
 </script>
 

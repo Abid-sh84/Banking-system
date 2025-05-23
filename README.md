@@ -6,7 +6,7 @@ A full-stack banking application with separate customer and banker interfaces, b
 
 This is a monorepo containing:
 
-- **Backend**: Node.js/Express REST API with MySQL database
+- **Backend**: Node.js/Express REST API with PostgreSQL database
 - **Frontend**: Vue.js single-page application with Vite
 
 ## Features
@@ -28,7 +28,7 @@ This is a monorepo containing:
 ### Prerequisites
 
 - Node.js (v16+)
-- MySQL database
+- PostgreSQL database
 - npm or yarn
 
 ### Backend Setup

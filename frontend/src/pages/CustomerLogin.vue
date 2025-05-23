@@ -1,27 +1,26 @@
 <!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\src\pages\CustomerLogin.vue -->
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 full-width-bg">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
       <div class="flex justify-center">
-        <div class="h-12 w-12 bg-primary rounded-full flex items-center justify-center">
-          <span class="text-white text-xl font-bold">MB</span>
+        <div class="h-16 w-16 bg-gradient-to-r from-primary to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+          <span class="text-white text-2xl font-bold">MB</span>
         </div>
-      </div>      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      </div>      
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
         Customer Login
       </h2>
       <p class="mt-2 text-center text-sm text-gray-600">
-        <router-link to="/" class="font-medium text-primary hover:text-primary-dark">
+        <router-link to="/" class="font-medium text-primary hover:text-primary-dark transition-colors duration-200">
           Back to home
         </router-link>
         <span class="mx-2">|</span>
-        <router-link to="/customer/register" class="font-medium text-primary hover:text-primary-dark">
+        <router-link to="/customer/register" class="font-medium text-primary hover:text-primary-dark transition-colors duration-200">
           Create a new account
         </router-link>
       </p>
-    </div>
-
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+    </div>    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+      <div class="bg-white py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10 transition-all duration-300 hover:shadow-xl">
         <form class="space-y-6" @submit.prevent="handleSubmit">
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700">
@@ -37,6 +36,7 @@
                 required
                 class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                 :class="{ 'border-red-500': errors.email }"
+                placeholder="Enter your email"
               />
               <p v-if="errors.email" class="mt-2 text-sm text-red-600">{{ errors.email }}</p>
             </div>
@@ -46,17 +46,26 @@
             <label for="password" class="block text-sm font-medium text-gray-700">
               Password
             </label>
-            <div class="mt-1">
+            <div class="mt-1 relative">
               <input
                 id="password"
                 v-model="password"
                 name="password"
-                type="password"
+                :type="showPassword ? 'text' : 'password'"
                 autocomplete="current-password"
                 required
                 class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                 :class="{ 'border-red-500': errors.password }"
+                placeholder="Enter your password"
               />
+              <button 
+                type="button" 
+                @click="showPassword = !showPassword"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
+              >
+                <Eye v-if="!showPassword" class="h-5 w-5 text-gray-400" />
+                <EyeOff v-else class="h-5 w-5 text-gray-400" />
+              </button>
               <p v-if="errors.password" class="mt-2 text-sm text-red-600">{{ errors.password }}</p>
             </div>
           </div>
@@ -64,7 +73,7 @@
           <div>
             <button
               type="submit"
-              class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-light hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transform transition-all duration-200 hover:scale-105"
               :disabled="loading"
             >
               <Loader2 v-if="loading" class="h-5 w-5 animate-spin mr-2" />
@@ -82,13 +91,14 @@
                   {{ error }}
                 </p>
               </div>
-            </div>          </div>
+            </div>
+          </div>
         </form>
 
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-600">
             Don't have an account?
-            <router-link to="/customer/register" class="font-medium text-primary hover:text-primary-dark">
+            <router-link to="/customer/register" class="font-medium text-primary hover:text-primary-dark transition-colors duration-200">
               Register now
             </router-link>
           </p>
@@ -103,7 +113,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/authStore';
-import { Loader2, AlertTriangle } from 'lucide-vue-next';
+import { Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-vue-next';
 
 const router = useRouter();
 const toast = useToast();
@@ -113,6 +123,7 @@ const email = ref('');
 const password = ref('');
 const loading = ref(false);
 const error = ref('');
+const showPassword = ref(false);
 const errors = ref({
   email: '',
   password: ''
@@ -175,6 +186,15 @@ const handleSubmit = async () => {
 .bg-primary {
   background-color: #3b82f6;
 }
+.from-primary {
+  --tw-gradient-from: #3b82f6;
+}
+.from-primary-light {
+  --tw-gradient-from: #60a5fa;
+}
+.to-indigo-600 {
+  --tw-gradient-to: #4f46e5;
+}
 .text-primary {
   color: #3b82f6;
 }
@@ -184,7 +204,21 @@ const handleSubmit = async () => {
 .focus\:border-primary:focus {
   border-color: #3b82f6;
 }
-.hover\:bg-primary-dark:hover {
-  background-color: #2563eb;
+.hover\:text-primary-dark:hover {
+  color: #2563eb;
+}
+.full-width-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow-x: hidden;
+  z-index: 0;
 }
 </style>

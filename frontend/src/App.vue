@@ -1,10 +1,10 @@
 <!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\frontend\src\App.vue -->
 <template>
-  <div class="app min-h-screen bg-gray-50">
+  <div class="app min-h-screen w-full overflow-x-hidden">
     <Header />
-    <main class="pt-16">
-      <!-- Main content wrapper with proper padding for the fixed navbar -->
-      <div class="max-w-7xl mx-auto">
+    <main class="w-full">
+      <!-- Main content wrapper -->
+      <div class="w-full">
         <router-view />
       </div>
     </main>
@@ -57,11 +57,17 @@ onMounted(async () => {
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* Smooth scrolling for the entire site */
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Ensure the page content fills the viewport */
@@ -69,10 +75,15 @@ html {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 main {
   flex: 1;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Apply consistent container styles */

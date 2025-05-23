@@ -70,6 +70,23 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  // Test database connection
-  await testConnection();
+  
+  try {
+    // Test database connection
+    await testConnection();
+    
+    // Run database update if connection is successful
+    try {
+      // Only run database updates if needed
+      const updateDatabase = require('./config/db.update');
+      await updateDatabase();
+      
+      console.log('Database schema updated successfully');
+    } catch (error) {
+      console.error('Error updating database schema:', error);
+    }
+  } catch (error) {
+    console.warn('Database connection failed, but server is still running.');
+    console.warn('Some features requiring database access will not work.');
+  }
 });

@@ -8,6 +8,22 @@ const getProfile = asyncHandler(async (req, res) => {
   
   const customer = await CustomerModel.findById(id);
   
+  // Log the customer data to debug missing fields
+  console.log('Customer profile data:', {
+    id: customer.id, 
+    name: customer.name,
+    email: customer.email,
+    customer_id: customer.customer_id || 'Missing customer_id'
+  });
+  
+  // Ensure customer_id is included in the response
+  if (!customer.customer_id) {
+    // Generate a customer ID if it's missing
+    const customerId = 'CUST' + Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    await CustomerModel.updateCustomerId(customer.id, customerId);
+    customer.customer_id = customerId;
+  }
+  
   res.status(200).json({
     success: true,
     data: customer

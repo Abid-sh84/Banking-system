@@ -10,6 +10,7 @@ import App from './App.vue';
 import Home from './pages/Home.vue';
 import CustomerLogin from './pages/CustomerLogin.vue';
 import CustomerRegister from './pages/CustomerRegister.vue';
+import AccountSelection from './pages/AccountSelection.vue';
 import BankerLogin from './pages/BankerLogin.vue';
 import CustomerDashboard from './pages/CustomerDashboard.vue';
 import CustomerProfile from './pages/CustomerProfile.vue';
@@ -26,6 +27,7 @@ const router = createRouter({
   history: createWebHistory(),  routes: [
     { path: '/', component: Home },
     { path: '/customer/login', component: CustomerLogin },
+    { path: '/account-selection', component: AccountSelection },
     { path: '/customer/register', component: CustomerRegister },
     { path: '/banker/login', component: BankerLogin },
     { 

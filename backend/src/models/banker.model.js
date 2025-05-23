@@ -1,4 +1,4 @@
-const { pool } = require('../config/db.config');
+const { pool, query } = require('../config/db.config');
 const bcrypt = require('bcrypt');
 const { ApiError } = require('../utils/error.utils');
 
@@ -6,16 +6,16 @@ class BankerModel {
   // Find by email (for login)
   static async findByEmail(email) {
     try {
-      const [bankers] = await pool.execute(
-        'SELECT * FROM bankers WHERE email = ?',
+      const result = await query(
+        'SELECT * FROM bankers WHERE email = $1',
         [email]
       );
       
-      if (bankers.length === 0) {
+      if (result.rows.length === 0) {
         throw new ApiError(404, 'Banker not found');
       }
       
-      return bankers[0];
+      return result.rows[0];
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(500, `Error finding banker: ${error.message}`);
@@ -25,16 +25,16 @@ class BankerModel {
   // Find a banker by ID
   static async findById(id) {
     try {
-      const [bankers] = await pool.execute(
-        'SELECT id, name, email, role, status, created_at, updated_at FROM bankers WHERE id = ?',
+      const result = await query(
+        'SELECT id, name, email, role, status, created_at, updated_at FROM bankers WHERE id = $1',
         [id]
       );
       
-      if (bankers.length === 0) {
+      if (result.rows.length === 0) {
         throw new ApiError(404, 'Banker not found');
       }
       
-      return bankers[0];
+      return result.rows[0];
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(500, `Error finding banker: ${error.message}`);
@@ -45,27 +45,29 @@ class BankerModel {
   static async changePassword(id, oldPassword, newPassword) {
     try {
       // Get current password
-      const [bankers] = await pool.execute(
-        'SELECT password FROM bankers WHERE id = ?',
+      const result = await query(
+        'SELECT password FROM bankers WHERE id = $1',
         [id]
-      );
+            );
       
-      if (bankers.length === 0) {
+      if (result.rows.length === 0) {
         throw new ApiError(404, 'Banker not found');
-      }      
-      // Verify old password matches the banker's password
-      const isMatch = (oldPassword === bankers[0].password);
+      }
+      
+      // Verify old password
+      const isMatch = await bcrypt.compare(oldPassword, result.rows[0].password);
       if (!isMatch) {
         throw new ApiError(401, 'Current password is incorrect');
       }
       
-      // Use environment variable for password instead of hardcoding
-      const bankerPassword = process.env.BANKER_PASSWORD ;
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
       
       // Update password
-      await pool.execute(
-        'UPDATE bankers SET password = ?, updated_at = NOW() WHERE id = ?',
-        [fixedPassword, id]
+      await query(
+        'UPDATE bankers SET password = $1, updated_at = NOW() WHERE id = $2',
+        [hashedPassword, id]
       );
       
       return { success: true, message: 'Password updated successfully' };
@@ -81,25 +83,26 @@ class BankerModel {
     
     try {
       // Check if email already exists
-      const [existingBankers] = await pool.execute(
-        'SELECT * FROM bankers WHERE email = ?',
+      const existingBankers = await query(
+        'SELECT * FROM bankers WHERE email = $1',
         [email]
       );
       
-      if (existingBankers.length > 0) {
+      if (existingBankers.rows.length > 0) {
         throw new ApiError(409, 'Email already exists');
-      }      
-      // Use environment variable for password instead of hardcoding
-      const bankerPassword = process.env.BANKER_PASSWORD;
+      }
+      
+      // Hash the password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(process.env.BANKER_PASSWORD, salt);
       
       // Insert banker
-      const [result] = await pool.execute(
-        'INSERT INTO bankers (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
-        [name, email, bankerPassword, role, 'active']
+      const result = await query(
+        'INSERT INTO bankers (name, email, password, role, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [name, email, hashedPassword, role, 'active']
       );
-      
-      return {
-        id: result.insertId,
+        return {
+        id: result.rows[0].id,
         name,
         email,
         role,

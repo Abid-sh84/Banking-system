@@ -53,10 +53,10 @@
 
           <form class="mt-5 sm:mt-4" @submit.prevent="handleSubmit">
             <div>
-              <label for="amount" class="block text-sm font-medium text-gray-700">Amount (USD)</label>
+              <label for="amount" class="block text-sm font-medium text-gray-700">Amount (INR)</label>
               <div class="mt-1 relative rounded-md shadow-sm">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 sm:text-sm">$</span>
+                  <span class="text-gray-500 sm:text-sm">₹</span>
                 </div>
                 <input
                   v-model="amount"
@@ -72,7 +72,7 @@
                   @keypress="validateNumberInput"
                 />
                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 sm:text-sm">USD</span>
+                  <span class="text-gray-500 sm:text-sm">INR</span>
                 </div>
               </div>
               <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>

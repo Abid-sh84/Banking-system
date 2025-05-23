@@ -24,8 +24,7 @@
               <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {{ profile.name }}
               </dd>
-            </div>
-            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            </div>            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">
                 Email address
               </dt>
@@ -33,13 +32,74 @@
                 {{ profile.email }}
               </dd>
             </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">              <dt class="text-sm font-medium text-gray-500">
+                Customer ID
+              </dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                <span class="font-mono" v-if="profile.customer_id">{{ profile.customer_id }}</span>
+                <span v-else class="text-gray-500 italic">Loading...</span>
+              </dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">
+                Account Number
+              </dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                <span class="font-mono">{{ profile.account_number }}</span>
+              </dd>
+            </div>
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">
+                Phone Number
+              </dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex items-center">
+                <span v-if="!editingPhone">{{ profile.phone }}</span>
+                <input 
+                  v-else
+                  v-model="phoneInput" 
+                  type="text" 
+                  class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                />
+                <button 
+                  v-if="!editingPhone"
+                  @click="startEditingPhone" 
+                  class="ml-4 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                >
+                  Edit
+                </button>
+                <div v-else class="flex space-x-2 ml-4">
+                  <button 
+                    @click="savePhone" 
+                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    @click="cancelEditPhone" 
+                    class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </dd>
+            </div>            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">
                 Account type
               </dt>
               <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                  Customer
+                <span 
+                  class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" 
+                  :class="{
+                    'bg-blue-100 text-blue-800': profile.account_type === 'savings',
+                    'bg-green-100 text-green-800': profile.account_type === 'current',
+                    'bg-purple-100 text-purple-800': profile.account_type === 'fixed',
+                    'bg-gray-100 text-gray-800': !profile.account_type
+                  }"
+                >
+                  {{ formatAccountType(profile.account_type) }}
+                </span>
+                <span class="ml-2 text-xs text-gray-500">
+                  {{ getAccountTypeDescription(profile.account_type) }}
                 </span>
               </dd>
             </div>
@@ -123,21 +183,34 @@ const profile = ref({
   name: '',
   email: '',
   created_at: '',
-  password_changed_at: ''
+  password_changed_at: '',
+  customer_id: '',
+  account_number: '',
+  phone: ''
 });
 const loading = ref(true);
+const editingPhone = ref(false);
+const phoneInput = ref('');
 
 onMounted(async () => {
   await fetchProfile();
 });
 
 const fetchProfile = async () => {
-  try {
-    loading.value = true;
+  try {    loading.value = true;
     
     // Fetch user profile
     const response = await api.get('/customers/profile');
     profile.value = response.data.data;
+    
+    // Log the profile data to debug missing fields
+    console.log('Profile data received:', {
+      id: profile.value.id,
+      name: profile.value.name,
+      email: profile.value.email,
+      customer_id: profile.value.customer_id || 'Missing customer_id',
+      account_number: profile.value.account_number || 'Missing account_number'
+    });
     
   } catch (error) {
     console.error('Error fetching profile:', error);
@@ -156,6 +229,62 @@ const formatDate = (dateString) => {
     month: 'long',
     day: 'numeric'
   }).format(date);
+};
+
+const startEditingPhone = () => {
+  phoneInput.value = profile.value.phone;
+  editingPhone.value = true;
+};
+
+const cancelEditPhone = () => {
+  editingPhone.value = false;
+};
+
+const savePhone = async () => {
+  try {
+    loading.value = true;
+    
+    // Validate phone number
+    if (!phoneInput.value || phoneInput.value.length < 10) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+    
+    // Update profile
+    const response = await api.put('/customers/profile', {
+      name: profile.value.name,
+      address: profile.value.address,
+      phone: phoneInput.value
+    });
+    
+    profile.value = response.data.data;
+    editingPhone.value = false;
+    toast.success('Phone number updated successfully');
+  } catch (error) {
+    console.error('Error updating phone:', error);
+    toast.error('Failed to update phone number. Please try again.');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Helper methods for account type
+const formatAccountType = (type) => {
+  switch (type) {
+    case 'savings': return 'Savings Account';
+    case 'current': return 'Current Account';
+    case 'fixed': return 'Fixed Deposit';
+    default: return 'Standard Account';
+  }
+};
+
+const getAccountTypeDescription = (type) => {
+  switch (type) {
+    case 'savings': return '4.5% Interest | Min Balance: ₹1,000';
+    case 'current': return 'No Interest | Min Balance: ₹5,000';
+    case 'fixed': return '7.5% Interest | Min Deposit: ₹10,000';
+    default: return '';
+  }
 };
 
 const handleSignOutAllSessions = async () => {

@@ -9,12 +9,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
-  },
-  server: {
+  },  server: {
     proxy: {
       // Configure API proxy
       '/api': {
-        target: 'https://banking-system-model-1.vercel.app', // Your backend server URL
+        target: 'http://localhost:5000', // Your backend server URL with protocol
         changeOrigin: true,
         secure: false,
         // This allows us to see detailed proxy behavior

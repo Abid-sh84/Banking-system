@@ -39,10 +39,46 @@
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Full name</dt>
               <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ customer.name }}</dd>
-            </div>
-            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            </div>            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Email address</dt>
               <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ customer.email }}</dd>
+            </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Customer ID</dt>
+              <dd class="mt-1 text-sm font-medium text-gray-900 sm:mt-0 sm:col-span-2 font-mono">
+                {{ customer.customer_id || 'Not available' }}
+              </dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Account Number</dt>
+              <dd class="mt-1 text-sm font-medium text-gray-900 sm:mt-0 sm:col-span-2 font-mono">
+                {{ customer.account_number }}
+              </dd>
+            </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Account Type</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                <span 
+                  class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" 
+                  :class="{
+                    'bg-blue-100 text-blue-800': customer.account_type === 'savings',
+                    'bg-green-100 text-green-800': customer.account_type === 'current',
+                    'bg-purple-100 text-purple-800': customer.account_type === 'fixed',
+                    'bg-gray-100 text-gray-800': !customer.account_type
+                  }"
+                >
+                  {{ formatAccountType(customer.account_type) }}
+                </span>
+                <span class="ml-2 text-xs text-gray-500">
+                  {{ getAccountTypeDescription(customer.account_type) }}
+                </span>
+              </dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Phone Number</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {{ customer.phone || 'Not provided' }}
+              </dd>
             </div>
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Account Balance</dt>
@@ -285,9 +321,9 @@ const lastActivity = computed(() => {
 
 // Helper methods
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'INR',
     minimumFractionDigits: 2
   }).format(amount);
 };
@@ -303,6 +339,25 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date);
+};
+
+// Account type formatting helpers
+const formatAccountType = (type) => {
+  switch (type) {
+    case 'savings': return 'Savings Account';
+    case 'current': return 'Current Account';
+    case 'fixed': return 'Fixed Deposit';
+    default: return 'Standard Account';
+  }
+};
+
+const getAccountTypeDescription = (type) => {
+  switch (type) {
+    case 'savings': return '4.5% Interest | Min Balance: ₹1,000';
+    case 'current': return 'No Interest | Min Balance: ₹5,000';
+    case 'fixed': return '7.5% Interest | Min Deposit: ₹10,000';
+    default: return '';
+  }
 };
 
 const handleDeposit = async () => {

@@ -116,7 +116,7 @@ const getAllTransactions = asyncHandler(async (req, res) => {
       const endDateObj = new Date(endDate);
       
       if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
-        // Format dates as YYYY-MM-DD for MySQL
+        // Format dates as YYYY-MM-DD for PostgreSQL
         filters.startDate = startDateObj.toISOString().split('T')[0];
         filters.endDate = endDateObj.toISOString().split('T')[0];
       }

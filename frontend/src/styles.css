@@ -65,6 +65,20 @@ body {
   padding-top: 64px; /* Matches the height of our fixed navbar */
 }
 
+/* Full-width background fix */
+.full-width-bg {
+  margin: 0;
+  padding-top: 0;
+  margin-top: -64px; /* Counteract the padding-top on body */
+  min-height: calc(100vh + 64px); /* Ensure it covers the entire viewport height */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 0;
+}
+
 /* Enhanced component styles */
 .btn-primary {
   background-color: #0A2463;

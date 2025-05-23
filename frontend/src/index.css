@@ -90,6 +90,38 @@
   body {
     padding-top: 64px; /* Matches the height of our fixed navbar */
   }
+  
+  /* Currency symbol styling */
+  .currency-inr {
+    font-family: Arial, sans-serif;
+  }
+  
+  .currency-inr::before {
+    content: "₹";
+    margin-right: 0.125rem;
+  }
+  
+  /* Full width container utility */
+  .full-width-container {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  /* Full page background utility */
+  .full-page-bg {
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
 }
 
 body {
@@ -97,6 +129,9 @@ body {
   color: var(--dark);
   background-color: var(--gray-100);
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {

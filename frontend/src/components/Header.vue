@@ -1,14 +1,17 @@
 <!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\src\components\Header.vue -->
-<template>
-  <header class="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
+<template>  <header class="bg-white shadow-md fixed top-0 left-0 right-0 z-50 backdrop-blur-sm bg-white/95">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <div class="flex items-center">
           <router-link to="/" class="flex-shrink-0 flex items-center">
-            <div class="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+            <div class="h-10 w-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg transform transition-transform duration-300 hover:scale-110">
               <span class="text-white font-bold">MB</span>
             </div>
-            <span class="ml-2 text-lg font-semibold text-primary hidden sm:block">Modern Bank</span>
+            <div class="ml-3 hidden sm:block">
+              <span class="text-lg font-bold text-gray-900">Modern Bank</span>
+              <span class="text-blue-600 font-bold"> India</span>
+              <div class="text-xs text-gray-500">Secure • Reliable • Modern</div>
+            </div>
           </router-link>
           
           <div v-if="authStore.isAuthenticated" class="hidden md:ml-6 md:flex md:space-x-4">
@@ -64,19 +67,23 @@
                 </button>
               </div>
             </div>
-          </div>
-          <div v-else class="ml-4 flex items-center space-x-2">
+          </div>          <div v-else class="ml-4 flex items-center space-x-3">
             <router-link
               to="/customer/login"
-              class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200"
+              class="flex items-center px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-md text-sm font-medium text-blue-600 hover:bg-blue-100 transition-colors duration-200"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
               Customer Login
             </router-link>
-            <span class="text-gray-300">|</span>
             <router-link
               to="/banker/login"
-              class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200"
+              class="flex items-center px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-md text-sm font-medium text-indigo-600 hover:bg-indigo-100 transition-colors duration-200"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
               Banker Login
             </router-link>
           </div>
@@ -214,3 +221,12 @@ const handleLogout = () => {
   mobileMenuOpen.value = false;
 };
 </script>
+
+<style scoped>
+.from-primary {
+  --tw-gradient-from: #3b82f6;
+}
+.text-primary {
+  color: #3b82f6;
+}
+</style>

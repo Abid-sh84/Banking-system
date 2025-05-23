@@ -39,18 +39,18 @@ const checkUserStatus = asyncHandler(async (req, res, next) => {
   let params;
   
   if (req.user.role === 'customer') {
-    query = 'SELECT * FROM customers WHERE id = ? AND status = "active"';
-    params = [req.user.id];
+    query = 'SELECT * FROM customers WHERE id = $1 AND status = $2';
+    params = [req.user.id, 'active'];
   } else if (req.user.role === 'banker' || req.user.role === 'admin') {
-    query = 'SELECT * FROM bankers WHERE id = ? AND status = "active"';
-    params = [req.user.id];
+    query = 'SELECT * FROM bankers WHERE id = $1 AND status = $2';
+    params = [req.user.id, 'active'];
   } else {
     throw new ApiError(403, 'Invalid user role');
   }
   
-  const [results] = await pool.execute(query, params);
+  const results = await pool.query(query, params);
   
-  if (results.length === 0) {
+  if (results.rows.length === 0) {
     throw new ApiError(403, 'Account is inactive or doesn\'t exist');
   }
   

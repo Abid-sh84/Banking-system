@@ -5,7 +5,7 @@
       <li v-if="!transactions || transactions.length === 0" class="px-6 py-4 text-center text-gray-500">
         No transactions to display
       </li>
-      <li v-for="transaction in safeTransactions" :key="transaction.id" class="px-4 py-4 sm:px-6">
+      <li v-for="transaction in safeTransactions" :key="transaction.id" class="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors duration-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
             <div class="rounded-full p-2" :class="getTransactionTypeClass(transaction.type).bgClass">
@@ -15,13 +15,15 @@
                 :class="getTransactionTypeClass(transaction.type).iconClass" 
               />
             </div>
-            <div>              <p class="text-sm font-medium text-gray-900 capitalize">
+            <div>              
+              <p class="text-sm font-medium text-gray-900 capitalize">
                 {{ transaction.type }}
               </p>
               <p class="text-sm text-gray-500">
                 {{ formatDate(transaction.created_at || transaction.date) }}
               </p>
-            </div>        </div>
+            </div>
+          </div>
           <div class="text-right">
             <p class="text-sm font-semibold" :class="getTransactionTypeClass(transaction.type).amountClass">
               {{ getAmountPrefix(transaction.type) }}{{ formatCurrency(transaction.amount) }}
@@ -86,6 +88,19 @@ const getAmountPrefix = (type) => {
   return type === 'deposit' ? '+ ' : '- ';
 };
 
+// Custom rupee icon component if needed
+const RupeeIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-indian-rupee">
+      <path d="M6 3h12"></path>
+      <path d="M6 8h12"></path>
+      <path d="m6 13 8.5 8"></path>
+      <path d="M6 13h3"></path>
+      <path d="M9 13c6.667 0 6.667-10 0-10"></path>
+    </svg>
+  `
+};
+
 const formatCurrency = (amount) => {
   try {
     // Ensure amount is a number
@@ -93,17 +108,17 @@ const formatCurrency = (amount) => {
     
     // Check if it's a valid number
     if (isNaN(numAmount)) {
-      return '$0.00';
+      return '₹0.00';
     }
     
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
       minimumFractionDigits: 2
     }).format(numAmount);
   } catch (e) {
     console.error('Error formatting currency:', e, amount);
-    return '$0.00';
+    return '₹0.00';
   }
 };
 
