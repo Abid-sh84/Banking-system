@@ -8,6 +8,27 @@ const fs = require('fs');
 const envPath = path.resolve('c:\\Users\\Shamim shaikh\\Desktop\\Assignment\\project\\backend\\.env');
 console.log('DB update loading .env from:', envPath);
 console.log('File exists:', fs.existsSync(envPath));
+
+// Manual environment variable loading if dotenv doesn't work correctly
+try {
+  if (fs.existsSync(envPath)) {
+    const envData = fs.readFileSync(envPath, 'utf8');
+    const envLines = envData.split('\n');
+    
+    envLines.forEach(line => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const value = match[2].trim();
+        process.env[key] = value;
+      }
+    });
+  }
+} catch (err) {
+  console.error('Error manually loading .env file:', err);
+}
+
+// Also try dotenv as backup
 dotenv.config({ path: envPath });
 
 async function updateDatabase() {
@@ -18,15 +39,14 @@ async function updateDatabase() {
     DB_NAME,
     DB_PORT
   } = process.env;
-
   try {
-    // Create connection
+    // Create connection with fallback values
     const pool = new Pool({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      database: DB_NAME,
-      port: DB_PORT
+      host: DB_HOST || 'localhost',
+      user: DB_USER || 'postgres',
+      password: DB_PASSWORD || 'abid7062',
+      database: DB_NAME || 'bank',
+      port: parseInt(DB_PORT, 10) || 5432
     });
 
     console.log('Connected to database. Checking for schema updates...');

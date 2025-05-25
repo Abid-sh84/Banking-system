@@ -5,7 +5,8 @@ const {
   loginCustomer, 
   loginBanker, 
   logout, 
-  getCurrentUser 
+  getCurrentUser,
+  refreshToken
 } = require('../controllers/auth.controller');
 const { validateRequest } = require('../middleware/validation.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
@@ -30,11 +31,14 @@ const loginSchema = {
   }
 };
 
-// Routes
+// Routes - ensure these match the frontend paths
 router.post('/register', validateRequest(registerSchema), registerCustomer);
 router.post('/login/customer', validateRequest(loginSchema), loginCustomer);
+router.post('/login-customer', validateRequest(loginSchema), loginCustomer); // Add alternate route for compatibility
 router.post('/login/banker', validateRequest(loginSchema), loginBanker);
+router.post('/login-banker', validateRequest(loginSchema), loginBanker); // Add alternate route for compatibility
 router.post('/logout', logout);
 router.get('/me', authenticate, getCurrentUser);
+router.post('/refresh-token', refreshToken); // Add token refresh endpoint
 
 module.exports = router;

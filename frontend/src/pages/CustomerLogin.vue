@@ -159,24 +159,50 @@ const validateForm = () => {
 
 const handleSubmit = async () => {
   if (!validateForm()) return;
-  
-  try {
+    try {
     loading.value = true;
     error.value = '';
     
     console.log('Attempting login with:', email.value);
-    const response = await authStore.customerLogin(email.value, password.value);
-    console.log('Login response:', response);
     
-    // Add some delay to allow token processing
-    setTimeout(() => {
-      toast.success('Login successful');
-      router.push('/customer/dashboard');
-    }, 500);
+    // More detailed logging to diagnose issues
+    try {
+      const response = await authStore.customerLogin(email.value, password.value);
+      console.log('Login response:', response);
+      
+      // Add some delay to allow token processing
+      setTimeout(() => {
+        toast.success('Login successful');
+        router.push('/customer/dashboard');
+      }, 500);
+    } catch (apiError) {
+      console.error('API Error Details:', {
+        message: apiError.message,
+        status: apiError.response?.status,
+        data: apiError.response?.data,
+        config: apiError.config
+      });
+      
+      if (apiError.response?.status === 500) {
+        error.value = 'Server error. Please try again later or contact support.';
+      } else if (apiError.response?.status === 404) {
+        error.value = 'Customer account not found. Please check your email.';
+      } else if (apiError.response?.status === 401) {
+        error.value = 'Invalid credentials. Please check your email and password.';
+      } else if (apiError.response?.data?.message) {
+        error.value = apiError.response.data.message;
+      } else if (apiError.message.includes('Network Error')) {
+        error.value = 'Network error. Please check your connection and try again.';
+      } else {
+        error.value = 'Login failed. Please try again.';
+      }
+      
+      throw apiError; // Re-throw for outer catch
+    }
   } catch (err) {
     console.error('Login error:', err);
-    error.value = err.response?.data?.message || 'Invalid email or password. Please try again.';
-    toast.error('Login failed');  } finally {
+    toast.error(error.value || 'Login failed');
+  } finally {
     loading.value = false;
   }
 };

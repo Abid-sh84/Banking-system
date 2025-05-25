@@ -16,6 +16,11 @@ export default defineConfig({
         target: 'http://localhost:5000', // Your backend server URL with protocol
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => {
+          const newPath = path;
+          console.log('Rewriting path:', path, '->', newPath);
+          return newPath; // Keep /api prefix as backend now supports it
+        },
         // This allows us to see detailed proxy behavior
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {

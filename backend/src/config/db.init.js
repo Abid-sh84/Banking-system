@@ -8,6 +8,27 @@ const fs = require('fs');
 const envPath = path.resolve('c:\\Users\\Shamim shaikh\\Desktop\\Assignment\\project\\backend\\.env');
 console.log('Loading .env from:', envPath);
 console.log('File exists:', fs.existsSync(envPath));
+
+// Manual environment variable loading if dotenv doesn't work correctly
+try {
+  if (fs.existsSync(envPath)) {
+    const envData = fs.readFileSync(envPath, 'utf8');
+    const envLines = envData.split('\n');
+    
+    envLines.forEach(line => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const value = match[2].trim();
+        process.env[key] = value;
+      }
+    });
+  }
+} catch (err) {
+  console.error('Error manually loading .env file:', err);
+}
+
+// Also try dotenv as backup
 dotenv.config({ path: envPath });
 
 async function initializeDatabase() {
@@ -26,14 +47,13 @@ async function initializeDatabase() {
     database: DB_NAME,
     port: DB_PORT
   });
-
   try {
     // Create connection without database to check if it exists
     const client = new Client({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      port: DB_PORT,
+      host: DB_HOST || 'localhost',
+      user: DB_USER || 'postgres',
+      password: DB_PASSWORD || 'abid7062',
+      port: parseInt(DB_PORT, 10) || 5432,
       database: 'postgres' // Connect to default database first
     });
 
@@ -54,14 +74,13 @@ async function initializeDatabase() {
     }
 
     await client.end();
-    
-    // Connect to the specific database
+      // Connect to the specific database
     const pool = new Pool({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      database: DB_NAME,
-      port: DB_PORT
+      host: DB_HOST || 'localhost',
+      user: DB_USER || 'postgres',
+      password: DB_PASSWORD || 'abid7062',
+      database: DB_NAME || 'bank',
+      port: parseInt(DB_PORT, 10) || 5432
     });
     
     // Create customers table
@@ -115,24 +134,32 @@ async function initializeDatabase() {
         FOREIGN KEY (receiver_id) REFERENCES customers(id)
       )
     `);
-    console.log('Transactions table checked/created');
-
-    // Check if admin exists
+    console.log('Transactions table checked/created');    // Check if admin exists
     const adminResult = await pool.query(
       "SELECT * FROM bankers WHERE role = 'admin'"
     );
     
     // Create default admin if none exists
     if (adminResult.rows.length === 0) {
-      const salt = await bcrypt.genSalt(10);
-      const bankerPassword = process.env.BANKER_PASSWORD;
-      const hashedPassword = await bcrypt.hash(bankerPassword, salt);
-
+      // Use the plain password from .env directly as you mentioned you've manually set it in the database
+      const bankerPassword = process.env.BANKER_PASSWORD || 'admin@123';
+      
       await pool.query(
         'INSERT INTO bankers (name, email, password, role) VALUES ($1, $2, $3, $4)',
-        ['Admin User', 'admin@bank.com', hashedPassword, 'admin']
+        ['Admin User', 'admin@bank.com', bankerPassword, 'admin']
       );
-      console.log(`Default admin user created: admin@bank.com / ${bankerPassword}`);
+      console.log(`Default admin user created: admin@bank.com with direct password`);
+    } 
+    // Update existing admin password if it exists but needs to be changed
+    else {
+      // Update the admin user with the direct password from .env
+      const bankerPassword = process.env.BANKER_PASSWORD || 'admin@123';
+      
+      await pool.query(
+        "UPDATE bankers SET password = $1 WHERE role = 'admin'",
+        [bankerPassword]
+      );
+      console.log('Admin password updated to match .env BANKER_PASSWORD');
     }
     
     // Check if test customer exists

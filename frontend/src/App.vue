@@ -15,10 +15,11 @@
 import { onMounted, watch } from 'vue';
 import { useAuthStore } from './stores/authStore';
 import Header from './components/Header.vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const authStore = useAuthStore();
 const route = useRoute();
+const router = useRouter();
 
 // Log authentication state changes
 watch(() => authStore.isAuthenticated, (newValue) => {
@@ -30,24 +31,74 @@ watch(() => authStore.isAuthenticated, (newValue) => {
 onMounted(async () => {
   try {
     // Try to fetch user data if token exists
-    if (localStorage.getItem('token')) {
+    const token = localStorage.getItem('token');
+    if (token) {
       console.log('Token found in App.vue, fetching user data');
-      await authStore.fetchUser();
-      console.log('User data fetched in App.vue:', authStore.user);
       
-      // Log detailed auth info
-      console.log('Auth detailed state:', {
-        isAuthenticated: authStore.isAuthenticated,
-        isBanker: authStore.isBanker,
-        role: authStore.role,
-        token: !!authStore.token,
-        user: !!authStore.user
-      });
+      // Check if the token looks valid (at least in format)
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.warn('Token appears malformed, clearing auth data');
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        return;
+      }
+      
+      try {
+        // Try to parse the token payload (middle part) to check expiration
+        const payload = JSON.parse(atob(tokenParts[1]));
+        const expirationTime = payload.exp * 1000; // Convert to milliseconds
+        
+        if (Date.now() >= expirationTime) {
+          console.warn('Token has expired, clearing auth data');
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          return;
+        }
+        
+        console.log('Token appears valid, fetching user data');
+      } catch (tokenError) {
+        console.error('Error parsing token:', tokenError);
+      }
+      
+      // Fetch user data using the auth store
+      try {
+        await authStore.fetchUser();
+        console.log('User data fetched in App.vue:', authStore.user);
+        
+        // Log detailed auth info
+        console.log('Auth detailed state:', {
+          isAuthenticated: authStore.isAuthenticated,
+          isBanker: authStore.isBanker,
+          role: authStore.role,
+          token: !!authStore.token,
+          user: !!authStore.user
+        });
+      } catch (fetchError) {
+        console.error('Error fetching user data:', fetchError);
+        
+        // If we got a 401/403 error, clear the invalid token
+        if (fetchError.response && (fetchError.response.status === 401 || fetchError.response.status === 403)) {
+          console.warn('Auth error when fetching user data, clearing auth data');
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          
+          // Redirect to home or login page based on current path
+          const currentPath = route.path;
+          if (currentPath.includes('/banker/') || currentPath.includes('/customer/')) {
+            if (currentPath.includes('/banker/')) {
+              router.push('/banker/login');
+            } else {
+              router.push('/customer/login');
+            }
+          }
+        }
+      }
     } else {
       console.log('No token found in App.vue, user not authenticated');
     }
   } catch (error) {
-    console.error('Error fetching user data in App.vue:', error);
+    console.error('Error in App.vue auth initialization:', error);
   }
 });
 </script>

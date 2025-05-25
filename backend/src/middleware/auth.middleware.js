@@ -10,17 +10,34 @@ const authenticate = asyncHandler(async (req, res, next) => {
     (req.headers.authorization && req.headers.authorization.startsWith('Bearer') 
       ? req.headers.authorization.split(' ')[1] 
       : null);
+  
+  console.log('Auth middleware:', { 
+    path: req.path, 
+    hasToken: !!token, 
+    tokenFrom: token ? (req.cookies.token ? 'cookie' : 'header') : 'none',
+    cookieCount: Object.keys(req.cookies || {}).length,
+    hasAuthHeader: !!req.headers.authorization
+  });
 
   if (!token) {
     throw new ApiError(401, 'Authentication required. Please login.');
   }
 
-  // Verify token
-  const decoded = verifyToken(token);
-  
-  // Add user data to request
-  req.user = decoded;
-  next();
+  try {
+    // Verify token
+    const decoded = verifyToken(token);
+    console.log('Token verified successfully for user:', {
+      id: decoded.id,
+      role: decoded.role
+    });
+    
+    // Add user data to request
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Token verification failed:', error.message);
+    throw new ApiError(401, 'Invalid or expired token. Please login again.');
+  }
 });
 
 // Role-based authorization middleware

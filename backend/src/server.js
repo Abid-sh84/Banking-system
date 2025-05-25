@@ -17,8 +17,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     'http://localhost:3000', 
-    'http://localhost:8080', 
     'http://localhost:5173',
+    'http://localhost:5174', // Add this port for frontend development
+    'http://localhost:8080',
     process.env.FRONTEND_URL || 'https://banking-system-frontend.vercel.app',
     /\.vercel\.app$/  // Allow all vercel.app subdomains
   ],
@@ -50,19 +51,36 @@ const customerRoutes = require('./routes/customer.routes');
 const bankerRoutes = require('./routes/banker.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/banker', bankerRoutes);  // Make sure this matches frontend (not plural "bankers")
-app.use('/api/transactions', transactionRoutes);
+// Middleware to log all incoming requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} | ${req.method} ${req.originalUrl} | ${req.ip} | Content-Type: ${req.headers['content-type']}`);
+  next();
+});
 
-// Error handling middleware
+// Routes with duplicate mappings to handle both /api prefix and direct paths
+app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes); // Add duplicate route without /api prefix to handle both proxy configurations
+app.use('/api/customers', customerRoutes);
+app.use('/customers', customerRoutes); // Duplicate without /api prefix
+app.use('/api/banker', bankerRoutes);  // Make sure this matches frontend (not plural "bankers")
+app.use('/banker', bankerRoutes); // Duplicate without /api prefix
+app.use('/api/transactions', transactionRoutes);
+app.use('/transactions', transactionRoutes); // Duplicate without /api prefix
+
+// Error handling middleware with improved logging
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('API Error:', err.message);
+  console.error('Request path:', req.path);
+  console.error('Request body:', req.body);
+  console.error('Error stack:', err.stack);
+  
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,
     message: err.message || 'Internal Server Error',
+    path: req.path,
+    method: req.method,
+    // Only include stack trace in development
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 });
@@ -70,10 +88,37 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`API endpoints available at:`);
+  console.log(`- http://localhost:${PORT}/api/auth/login/customer`);
+  console.log(`- http://localhost:${PORT}/api/auth/login/banker`);
+  console.log(`- http://localhost:${PORT}/api/auth/register`);
+  console.log(`- http://localhost:${PORT}/auth/login/customer (alternate)`);
   
   try {
-    // Test database connection
-    await testConnection();
+    // Test database connection with retries
+    let connected = false;
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (!connected && attempts < maxAttempts) {
+      attempts++;
+      try {
+        console.log(`Database connection attempt ${attempts}/${maxAttempts}...`);
+        await testConnection();
+        connected = true;
+        console.log('Database connection successful!');
+      } catch (connError) {
+        console.error(`Connection attempt ${attempts} failed:`, connError.message);
+        if (attempts < maxAttempts) {
+          console.log('Retrying in 2 seconds...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+    }
+    
+    if (!connected) {
+      throw new Error('Failed to connect to database after multiple attempts');
+    }
     
     // Run database update if connection is successful
     try {
@@ -88,5 +133,6 @@ app.listen(PORT, async () => {
   } catch (error) {
     console.warn('Database connection failed, but server is still running.');
     console.warn('Some features requiring database access will not work.');
+    console.error('Connection error details:', error.message);
   }
 });

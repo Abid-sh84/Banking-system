@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+// Setting baseURL to empty string to avoid double prefixes, as we'll use relative paths in the service methods
+const baseURL = '';
 
 const api = axios.create({
   baseURL,
@@ -9,6 +10,8 @@ const api = axios.create({
   },
   withCredentials: true, // This enables cookies to be sent with requests
 });
+
+console.log(`API configured with baseURL: ${baseURL}`);
 
 // Add a request interceptor to include the token in all requests
 api.interceptors.request.use(
@@ -35,28 +38,81 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor to handle expired tokens
+// Add a response interceptor to handle expired tokens with automatic token refresh
 api.interceptors.response.use(
   (response) => {
     console.log(`API Response from ${response.config.url}: Status ${response.status}`);
     return response;
   },
-  (error) => {
+  async (error) => {
     console.error('API Response Error:', error.message);
     
     if (error.response) {
       console.error(`API Error Response: Status ${error.response.status} from ${error.config?.url}`);
       console.error('Error Response Data:', error.response.data);
       
-      if (error.response.status === 401 || error.response.status === 403) {
-        // Token expired or invalid or permission issue
+      // Check if this is a token issue that can be fixed by refreshing
+      if (error.response.status === 401 && 
+          localStorage.getItem('token') && 
+          !error.config._retry && 
+          !error.config.url.includes('/auth/refresh-token')) {
+        
+        console.warn('Unauthorized error detected, attempting token refresh');
+        error.config._retry = true;
+        
+        try {
+          const authStore = window.authStore;
+          if (!authStore) {
+            console.warn('Auth store not accessible from interceptor, cannot refresh token');
+            throw new Error('Auth store not available');
+          }
+          
+          // Try to refresh the token
+          const refreshed = await authStore.refreshToken();
+          if (refreshed) {
+            console.log('Token refreshed successfully, retrying request');
+            // Update the token in the original request config
+            const token = localStorage.getItem('token');
+            error.config.headers.Authorization = `Bearer ${token}`;
+            // Retry the original request with the new token
+            return api(error.config);
+          } else {
+            console.warn('Token refresh failed, continuing with error');
+            throw error;
+          }
+        } catch (refreshError) {
+          console.error('Error during token refresh:', refreshError);
+          
+          console.warn('Token refresh failed, clearing auth data');
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          localStorage.removeItem('tokenLastRefreshed');
+          
+          // Check current page before redirecting
+          const currentPath = window.location.pathname;
+          if (currentPath.includes('/banker/') || currentPath.includes('/customer/')) {
+            console.log('Redirecting to appropriate login from protected page');
+            // Route to the proper login page based on the current path
+            if (currentPath.includes('/banker/')) {
+              window.location.href = '/banker/login';
+            } else {
+              window.location.href = '/customer/login';
+            }
+          }
+          
+          return Promise.reject(error);
+        }
+      } else if ((error.response.status === 401 || error.response.status === 403) &&
+                !error.config.url.includes('/auth/refresh-token')) {
+        // Token expired or invalid or permission issue that couldn't be fixed with a refresh
         console.warn('Authentication/Authorization issue detected');
         
-        // Only clear token on 401 (Unauthorized)
+        // Only clear token on 401 (Unauthorized) that wasn't fixed by refresh
         if (error.response.status === 401) {
           console.warn('Token invalid or expired, clearing auth data');
           localStorage.removeItem('token');
           localStorage.removeItem('role');
+          localStorage.removeItem('tokenLastRefreshed');
           
           // Check current page before redirecting
           const currentPath = window.location.pathname;
@@ -79,26 +135,94 @@ api.interceptors.response.use(
   }
 );
 
-// Auth services
+// Auth services - using consistent paths with the Vite proxy configuration
 export const authService = {
-  registerCustomer: (data) => api.post('/auth/register', data),
-  loginCustomer: (data) => api.post('/auth/login/customer', data),
-  loginBanker: (data) => api.post('/auth/login/banker', data),
-  logout: () => api.post('/auth/logout'),
-  getCurrentUser: () => api.get('/auth/me')
+  registerCustomer: (data) => api.post('/api/auth/register', data),
+  
+  loginCustomer: (data) => {
+    console.log('Attempting customer login with data:', { email: data.email });
+    return api.post('/api/auth/login/customer', data)
+      .catch(error => {
+        console.error('Customer login failed:', error.message);
+        // Try alternate path if the first one fails
+        if (error.response && error.response.status === 404) {
+          console.log('Trying alternate path for customer login');
+          return api.post('/auth/login/customer', data);
+        }
+        throw error;
+      });
+  },
+  
+  loginBanker: (data) => {
+    console.log('Attempting banker login with data:', { email: data.email });
+    return api.post('/api/auth/login/banker', data)
+      .catch(error => {
+        console.error('Banker login failed:', error.message);
+        // Try alternate path if the first one fails
+        if (error.response && error.response.status === 404) {
+          console.log('Trying alternate path for banker login');
+          return api.post('/auth/login/banker', data);
+        }
+        throw error;
+      });
+  },
+  
+  logout: () => api.post('/api/auth/logout'),
+  
+  // This endpoint is critical for token verification and user data
+  getCurrentUser: () => {
+    console.log('Fetching current user data');
+    return api.get('/api/auth/me')
+      .catch(error => {
+        console.error('Failed to get current user:', error.message);
+        // Try alternate path if the first one fails
+        if (error.response && error.response.status === 404) {
+          console.log('Trying alternate path for current user');
+          return api.get('/auth/me');
+        }
+        throw error;
+      });
+  },
+  
+  // Add token refresh functionality
+  refreshToken: () => {
+    console.log('Attempting to refresh token');
+    return api.post('/api/auth/refresh-token')
+      .catch(error => {
+        console.error('Failed to refresh token:', error.message);
+        // Try alternate path if the first one fails
+        if (error.response && error.response.status === 404) {
+          console.log('Trying alternate path for token refresh');
+          return api.post('/auth/refresh-token');
+        }
+        throw error;
+      });
+  }
 };
 
-// Customer services
+// Customer services - using consistent paths with /api prefix
 export const customerService = {
-  getProfile: () => api.get('/customers/profile'),
-  updateProfile: (data) => api.put('/customers/profile', data),
-  changePassword: (data) => api.post('/customers/change-password', data),
-  getTransactions: (params) => api.get('/customers/transactions', { params }),
+  getProfile: () => {
+    console.log('Getting customer profile');
+    return api.get('/api/customers/profile')
+      .catch(error => {
+        console.error('Failed to get customer profile:', error.message);
+        // Try alternate path if the first one fails
+        if (error.response && error.response.status === 404) {
+          console.log('Trying alternate path for customer profile');
+          return api.get('/customers/profile');
+        }
+        throw error;
+      });
+  },
+  updateProfile: (data) => api.put('/api/customers/profile', data),
+  changePassword: (data) => api.post('/api/customers/change-password', data),
+  getTransactions: (params) => api.get('/api/customers/transactions', { params }),
   getTransaction: (id) => api.get(`/customers/transactions/${id}`),
   createTransaction: (data) => api.post('/customers/transactions', data)
 };
 
-// Banker services - Updated paths to ensure they match the backend
+// Banker services - consistent paths based on our baseURL
 export const bankerService = {
   getProfile: () => api.get('/banker/profile'),
   changePassword: (data) => api.post('/banker/change-password', data),

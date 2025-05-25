@@ -17,7 +17,7 @@ import CustomerProfile from './pages/CustomerProfile.vue';
 import BankerDashboard from './pages/BankerDashboard.vue';
 import CustomerDetails from './pages/CustomerDetails.vue';
 import NotFound from './pages/NotFound.vue';
-import { useAuthStore } from './stores/authStore';
+import { useAuthStore, setupGlobalAuthStore } from './stores/authStore';
 
 // Create pinia (state management)
 const pinia = createPinia();
@@ -147,4 +147,10 @@ const app = createApp(App);
 app.use(pinia);
 app.use(router);
 app.use(Toast, toastOptions);
+
+// Setup global auth store reference for use in API interceptors
+const authStore = useAuthStore(pinia);
+setupGlobalAuthStore(authStore);
+console.log('Global auth store setup complete');
+
 app.mount('#app');

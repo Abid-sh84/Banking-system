@@ -1,12 +1,19 @@
 import { defineStore } from 'pinia';
 import { authService } from '../services/api';
 
+// Create a global reference to the auth store for use in API interceptors
+let globalAuthStore = null;
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
     token: localStorage.getItem('token'),
     role: localStorage.getItem('role'),
-    loading: false
+    loading: false,
+    refreshingToken: false,
+    tokenLastRefreshed: localStorage.getItem('tokenLastRefreshed') 
+      ? parseInt(localStorage.getItem('tokenLastRefreshed'))
+      : null
   }),
   getters: {
     // Fix authentication check - the previous condition was too restrictive
@@ -45,14 +52,19 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false;
       }
     },
-    
-    async customerLogin(email, password) {
+      async customerLogin(email, password) {
       this.loading = true;
       
       try {
-        console.log('Auth Store: Attempting customer login');
+        console.log('Auth Store: Attempting customer login with email:', email);
         const response = await authService.loginCustomer({ email, password });
         console.log('Auth Store: Login response received', response.data);
+        
+        // Check if response has the expected structure
+        if (!response.data || !response.data.data || !response.data.data.token) {
+          console.error('Auth Store: Unexpected response format', response.data);
+          throw new Error('Invalid response from server. Missing token or customer data.');
+        }
         
         const { token, customer } = response.data.data;
         
@@ -68,6 +80,11 @@ export const useAuthStore = defineStore('auth', {
         return response;
       } catch (error) {
         console.error('Auth Store: Login error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
         throw error;
       } finally {
         this.loading = false;
@@ -199,6 +216,66 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         this.loading = false;
       }
+    },
+    
+    async refreshToken() {
+      // Don't refresh if already refreshing or if no token exists
+      if (this.refreshingToken || !this.token) {
+        console.log('Auth Store: Skipping token refresh - already refreshing or no token');
+        return false;
+      }
+      
+      // Don't refresh if it was refreshed less than 5 minutes ago
+      if (this.tokenLastRefreshed) {
+        const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+        if (Date.now() - this.tokenLastRefreshed < fiveMinutes) {
+          console.log('Auth Store: Token was refreshed recently, skipping');
+          return true; // Token is still fresh
+        }
+      }
+      
+      this.refreshingToken = true;
+      console.log('Auth Store: Refreshing token');
+      
+      try {
+        const response = await authService.refreshToken();
+        console.log('Auth Store: Token refresh response received', response.data);
+        
+        if (response.data && response.data.data && response.data.data.token) {
+          const { token } = response.data.data;
+          
+          this.token = token;
+          localStorage.setItem('token', token);
+          
+          // Update the last refreshed timestamp
+          this.tokenLastRefreshed = Date.now();
+          localStorage.setItem('tokenLastRefreshed', this.tokenLastRefreshed.toString());
+          
+          console.log('Auth Store: Token refreshed successfully');
+          return true;
+        } else {
+          console.warn('Auth Store: Unexpected token refresh response format', response.data);
+          return false;
+        }
+      } catch (error) {
+        console.error('Auth Store: Token refresh error:', error);
+        
+        // If unauthorized, clear auth data
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          console.warn('Auth Store: Auth error on token refresh, logging out');
+          this.logout();
+        }
+        return false;
+      } finally {
+        this.refreshingToken = false;
+      }
     }
   }
 });
+
+// Export a function that sets up the global reference to the auth store
+export const setupGlobalAuthStore = (store) => {
+  globalAuthStore = store;
+  window.authStore = store; // Make it accessible from window for interceptors
+  return store;
+};
