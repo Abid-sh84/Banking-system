@@ -233,7 +233,14 @@ export const bankerService = {
   getCustomer: (id) => api.get(`/banker/customers/${id}`),
   getCustomerTransactions: (id, params) => api.get(`/banker/customers/${id}/transactions`, { params }),
   getAllTransactions: (params) => api.get('/banker/transactions', { params }),
-  createBanker: (data) => api.post('/banker/create', data)
+  createBanker: (data) => api.post('/banker/create', data),
+  approveTransaction: (id) => api.post(`/banker/transactions/${id}/approve`),
+  rejectTransaction: (id, data) => api.post(`/banker/transactions/${id}/reject`, data),
+  createCustomerDeposit: (customerId, data) => api.post(`/banker/customers/${customerId}/deposit`, data),
+  exportTransactions: (params) => api.get('/banker/transactions/export', { 
+    params,
+    responseType: 'blob' 
+  })
 };
 
 export default api;

@@ -201,6 +201,212 @@ const createCustomerDeposit = asyncHandler(async (req, res) => {
   });
 });
 
+// Approve a pending transaction
+const approveTransaction = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Find transaction by ID
+    const transaction = await TransactionModel.findById(id);
+    
+    // Check if transaction exists
+    if (!transaction) {
+      throw new ApiError(404, 'Transaction not found');
+    }
+    
+    // Check if transaction is in pending status
+    if (transaction.status !== 'pending') {
+      throw new ApiError(400, `Transaction cannot be approved as it is already ${transaction.status}`);
+    }
+    
+    // Update transaction status to approved
+    const updatedTransaction = await TransactionModel.update(id, {
+      status: 'approved',
+      approved_by: req.user.id,
+      approved_at: new Date().toISOString()
+    });
+    
+    // Return updated transaction
+    res.status(200).json({
+      success: true,
+      message: 'Transaction approved successfully',
+      data: updatedTransaction
+    });
+  } catch (error) {
+    console.error('Error in approveTransaction:', error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, `Error approving transaction: ${error.message}`);
+  }
+});
+
+// Reject a pending transaction
+const rejectTransaction = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  
+  if (!reason || !reason.trim()) {
+    throw new ApiError(400, 'Rejection reason is required');
+  }
+  
+  try {
+    // Find transaction by ID
+    const transaction = await TransactionModel.findById(id);
+    
+    // Check if transaction exists
+    if (!transaction) {
+      throw new ApiError(404, 'Transaction not found');
+    }
+    
+    // Check if transaction is in pending status
+    if (transaction.status !== 'pending') {
+      throw new ApiError(400, `Transaction cannot be rejected as it is already ${transaction.status}`);
+    }
+    
+    // Update transaction status to rejected
+    const updatedTransaction = await TransactionModel.update(id, {
+      status: 'rejected',
+      rejected_by: req.user.id,
+      rejected_at: new Date().toISOString(),
+      rejection_reason: reason
+    });
+    
+    // Return updated transaction
+    res.status(200).json({
+      success: true,
+      message: 'Transaction rejected successfully',
+      data: updatedTransaction
+    });
+  } catch (error) {
+    console.error('Error in rejectTransaction:', error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, `Error rejecting transaction: ${error.message}`);
+  }
+});
+
+// Export transactions data
+const exportTransactions = asyncHandler(async (req, res) => {
+  const { format, startDate, endDate, type, customerId } = req.query;
+  
+  try {
+    // Validate format
+    const validFormats = ['csv', 'xlsx', 'pdf'];
+    if (!validFormats.includes(format)) {
+      throw new ApiError(400, `Invalid export format. Supported formats: ${validFormats.join(', ')}`);
+    }
+    
+    // Prepare filters
+    const filters = {};
+    
+    if (type) filters.type = type;
+    if (customerId) filters.customerId = parseInt(customerId, 10);
+    
+    // Add date filters if provided
+    if (startDate && endDate) {
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      
+      if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+        filters.startDate = startDateObj.toISOString().split('T')[0];
+        filters.endDate = endDateObj.toISOString().split('T')[0];
+      }
+    }
+    
+    // Get transactions using existing model functionality, but don't paginate for exports
+    const result = await TransactionModel.findAll(1000, 0, filters);
+    
+    // Format transactions for export
+    const transactions = result.transactions.map(tx => ({
+      id: tx.id,
+      customer_id: tx.customer_id,
+      customer_name: tx.customer_name || 'N/A',
+      type: tx.type,
+      amount: tx.amount,
+      status: tx.status,
+      transaction_date: tx.transaction_date ? new Date(tx.transaction_date).toISOString().split('T')[0] : null,
+      description: tx.description || 'N/A'
+    }));
+    
+    // Set appropriate content type and filename
+    let filename, contentType;
+    
+    switch(format.toLowerCase()) {
+      case 'csv':
+        contentType = 'text/csv';
+        filename = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+        
+        // Convert to CSV
+        const csvContent = generateCSV(transactions);
+        
+        // Set headers and send response
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        return res.send(csvContent);
+        
+      case 'xlsx':
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        filename = `transactions-${new Date().toISOString().split('T')[0]}.xlsx`;
+        
+        // For now, we're sending a JSON response since XLSX generation requires additional libraries
+        res.status(200).json({
+          success: false,
+          message: 'XLSX export is not implemented yet. Please use CSV format.'
+        });
+        break;
+        
+      case 'pdf':
+        contentType = 'application/pdf';
+        filename = `transactions-${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        // For now, we're sending a JSON response since PDF generation requires additional libraries
+        res.status(200).json({
+          success: false,
+          message: 'PDF export is not implemented yet. Please use CSV format.'
+        });
+        break;
+        
+      default:
+        // Send JSON as a fallback
+        return res.status(200).json({
+          success: true,
+          data: transactions
+        });
+    }
+  } catch (error) {
+    console.error('Error in exportTransactions:', error);
+    throw new ApiError(500, `Error exporting transactions: ${error.message}`);
+  }
+});
+
+// Helper function to generate CSV content
+function generateCSV(data) {
+  if (!data || data.length === 0) return '';
+  
+  // Get headers from first object
+  const headers = Object.keys(data[0]);
+  
+  // Create header row
+  let csv = headers.join(',') + '\r\n';
+  
+  // Add data rows
+  data.forEach(row => {
+    const values = headers.map(header => {
+      const val = row[header] || '';
+      // Escape quotes and wrap in quotes if needed
+      if (typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    });
+    csv += values.join(',') + '\r\n';
+  });
+  
+  return csv;
+}
+
 module.exports = {
   getProfile,
   changePassword,
@@ -209,5 +415,8 @@ module.exports = {
   getCustomerTransactions,
   getAllTransactions,
   createBanker,
-  createCustomerDeposit
+  createCustomerDeposit,
+  approveTransaction,
+  rejectTransaction,
+  exportTransactions
 };
