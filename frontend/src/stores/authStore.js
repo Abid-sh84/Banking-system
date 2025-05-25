@@ -90,8 +90,7 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false;
       }
     },
-    
-    async bankerLogin(email, password) {
+      async bankerLogin(email, password) {
       this.loading = true;
       
       try {
@@ -99,7 +98,17 @@ export const useAuthStore = defineStore('auth', {
         const response = await authService.loginBanker({ email, password });
         console.log('Auth Store: Banker login response received', response.data);
         
+        if (!response.data || !response.data.data || !response.data.data.token) {
+          console.error('Auth Store: Unexpected response format', response.data);
+          throw new Error('Invalid response from server. Missing token or banker data.');
+        }
+        
         const { token, banker } = response.data.data;
+        
+        if (!token || !banker) {
+          console.error('Auth Store: Invalid response data', response.data);
+          throw new Error('Server returned invalid data. Missing token or banker info.');
+        }
         
         // Debug the banker object and role
         console.log('Banker data:', banker);
@@ -124,6 +133,11 @@ export const useAuthStore = defineStore('auth', {
         return response;
       } catch (error) {
         console.error('Auth Store: Banker login error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
         throw error;
       } finally {
         this.loading = false;

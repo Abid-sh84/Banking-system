@@ -9,17 +9,19 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
-  },  server: {
+  },
+  server: {
     proxy: {
-      // Configure API proxy
+      // Configure API proxy - prefix with /api 
       '/api': {
         target: 'http://localhost:5000', // Your backend server URL with protocol
         changeOrigin: true,
         secure: false,
         rewrite: (path) => {
-          const newPath = path;
+          // Remove duplicate /api prefix if present
+          const newPath = path.replace(/^\/api\/api\//, '/api/');
           console.log('Rewriting path:', path, '->', newPath);
-          return newPath; // Keep /api prefix as backend now supports it
+          return newPath;
         },
         // This allows us to see detailed proxy behavior
         configure: (proxy, _options) => {
@@ -28,10 +30,13 @@ export default defineConfig({
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             console.log('Sending Request to the Target:', req.method, req.url);
+            console.log('Request headers:', req.headers);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
+            if (proxyRes.statusCode >= 400) {
+              console.log('Error response headers:', proxyRes.headers);
+            }          });
         },
       },
     },

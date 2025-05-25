@@ -152,12 +152,30 @@ const handleSubmit = async () => {
     error.value = '';
     
     console.log('BankerLogin: Attempting login with', email.value);
+    
+    try {
+      // Import the test module for debugging
+      if (process.env.NODE_ENV !== 'production') {
+        const { testBankerLogin } = await import('../debug-auth');
+        console.log('Running test login to diagnose potential issues...');
+        const testResult = await testBankerLogin(email.value, password.value);
+        console.log('Test login result:', testResult);
+      }
+    } catch (testError) {
+      console.log('Debug test skipped:', testError);
+    }
+    
     const response = await authStore.bankerLogin(email.value, password.value);
-    console.log('BankerLogin: Login response details:', {
-      role: response.data.data.banker.role,
-      id: response.data.data.banker.id,
-      token: response.data.data.token ? response.data.data.token.substring(0, 15) + '...' : null
-    });
+    console.log('BankerLogin: Login response received');
+    
+    // More careful handling to avoid errors if response structure is unexpected
+    if (response?.data?.data?.banker) {
+      console.log('BankerLogin: Login response details:', {
+        role: response.data.data.banker.role,
+        id: response.data.data.banker.id,
+        token: response.data.data.token ? response.data.data.token.substring(0, 15) + '...' : null
+      });
+    }
     
     // Force the role to 'admin' if email is admin@bank.com
     if (email.value.toLowerCase() === 'admin@bank.com' && authStore.role !== 'admin') {
@@ -176,10 +194,20 @@ const handleSubmit = async () => {
     console.error('BankerLogin: Error during login:', err);
     
     if (err.response) {
-      console.error('Server error response:', err.response.data);
-      error.value = err.response.data?.message || 'Invalid email or password. Please try again.';
+      console.error('Server error response:', {
+        status: err.response.status,
+        data: err.response.data
+      });
+      
+      if (err.response.status === 500) {
+        error.value = 'Server error. Please try again later or contact support.';
+      } else {
+        error.value = err.response.data?.message || 'Invalid email or password. Please try again.';
+      }
+    } else if (err.request) {
+      error.value = 'No response from server. Please check your connection and try again.';
     } else {
-      error.value = 'Unable to connect to the server. Please try again later.';
+      error.value = err.message || 'Unable to connect to the server. Please try again later.';
     }
     
     toast.error('Login failed');  } finally {

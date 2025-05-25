@@ -41,4 +41,14 @@ router.post('/logout', logout);
 router.get('/me', authenticate, getCurrentUser);
 router.post('/refresh-token', refreshToken); // Add token refresh endpoint
 
+// Health check endpoint for diagnostics
+router.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    time: new Date().toISOString(),
+    service: 'auth',
+    message: 'Auth service is running'
+  });
+});
+
 module.exports = router;

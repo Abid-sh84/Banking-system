@@ -154,3 +154,12 @@ setupGlobalAuthStore(authStore);
 console.log('Global auth store setup complete');
 
 app.mount('#app');
+
+// Add backend connectivity test in development mode
+if (import.meta.env.DEV) {
+  import('./utils/backend-test').then(module => {
+    module.addBackendConnectionTest();
+  }).catch(err => {
+    console.error('Failed to load backend test utility:', err);
+  });
+}

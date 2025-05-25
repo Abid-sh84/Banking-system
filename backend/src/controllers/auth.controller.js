@@ -3,6 +3,7 @@ const BankerModel = require('../models/banker.model');
 const { generateToken, verifyToken } = require('../utils/jwt.utils');
 const { ApiError, asyncHandler } = require('../utils/error.utils');
 const bcrypt = require('bcrypt');
+const { pool } = require('../config/db.config');
 
 // Customer registration
 const registerCustomer = asyncHandler(async (req, res) => {
@@ -122,9 +123,12 @@ const loginBanker = asyncHandler(async (req, res) => {
   
   console.log(`Login attempt for banker: ${email}`);
   
+  let banker;
+  let isMatch = false;
+  
   try {
     // Find banker by email
-    const banker = await BankerModel.findByEmail(email);
+    banker = await BankerModel.findByEmail(email);
     console.log(`Banker found: ${banker.id}, role: ${banker.role}, status: ${banker.status}`);
     
     // Check if banker is active
@@ -133,10 +137,7 @@ const loginBanker = asyncHandler(async (req, res) => {
       throw new ApiError(403, 'Your account is not active. Please contact support.');
     }    // Check if password matches the banker's stored password
     console.log(`Checking password for user: ${banker.email} with role: ${banker.role}`);
-    
-    let isMatch = false;
-    
-    // Special handling for admin user
+      // Special handling for admin user
     if (banker.role === 'admin') {
       console.log('Using special admin authentication');
       
@@ -152,7 +153,7 @@ const loginBanker = asyncHandler(async (req, res) => {
         
         // Update the stored password to match the environment variable for future logins
         try {
-          await query(
+          await pool.query(
             "UPDATE bankers SET password = $1 WHERE role = 'admin'",
             [process.env.BANKER_PASSWORD || 'admin@123']
           );
@@ -169,7 +170,7 @@ const loginBanker = asyncHandler(async (req, res) => {
         // If successful with bcrypt, update to direct password for future
         if (isMatch) {
           try {
-            await query(
+            await pool.query(
               "UPDATE bankers SET password = $1 WHERE role = 'admin'",
               [process.env.BANKER_PASSWORD || 'admin@123']
             );
@@ -190,38 +191,36 @@ const loginBanker = asyncHandler(async (req, res) => {
     if (!isMatch) {
       throw new ApiError(401, 'Invalid credentials');
     }
+      // Make sure the role is set correctly - important for admin@bank.com user
+    const role = banker.role || 'banker';
+    
+    // Generate token
+    const token = generateToken({
+      id: banker.id,
+      role: role
+    });
+    
+    // Remove sensitive data
+    delete banker.password;
+    
+    // Set cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: process.env.NODE_ENV === 'production'
+    });
+      res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        banker,
+        token
+      }
+    });
   } catch (error) {
     console.error('Error during banker login:', error);
     throw error;
   }
-  
-  // Make sure the role is set correctly - important for admin@bank.com user
-  const role = banker.role || 'banker';
-  
-  // Generate token
-  const token = generateToken({
-    id: banker.id,
-    role: role
-  });
-  
-  // Remove sensitive data
-  delete banker.password;
-  
-  // Set cookie
-  res.cookie('token', token, {
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: process.env.NODE_ENV === 'production'
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Login successful',
-    data: {
-      banker,
-      token
-    }
-  });
 });
 
 // Logout

@@ -36,13 +36,28 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint for monitoring
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'up',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+app.get('/health', async (req, res) => {
+  try {
+    // Test database connection
+    const dbStatus = await testConnection();
+    
+    res.status(200).json({
+      status: 'up',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      database: dbStatus ? 'connected' : 'disconnected'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      database: 'error',
+      error: error.message
+    });
+  }
 });
 
 // Import routes

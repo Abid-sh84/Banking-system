@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Load environment variables directly with absolute path
-const envPath = path.resolve('c:\\Users\\Shamim shaikh\\Desktop\\Assignment\\project\\backend\\.env');
+const envPath = path.resolve(path.join(__dirname, '../../.env'));
 console.log('DB config loading .env from:', envPath);
 console.log('File exists:', fs.existsSync(envPath));
 
