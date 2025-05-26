@@ -1,19 +1,20 @@
-<template>
-  <div class="virtual-card-container" :class="{ 'flipped': isFlipped }">
+<template>  <div class="virtual-card-container" :class="{ 'flipped': isFlipped || overrideFlip }">
     <div 
       class="virtual-card" 
       :class="{ 
         'inactive': !card || card.status !== 'active',
         'active': card && card.status === 'active', 
-        'front': !isFlipped, 
-        'back': isFlipped 
+        'front': !(isFlipped || overrideFlip), 
+        'back': isFlipped || overrideFlip 
       }"
       @click="flipCard"
     >
-      <!-- Front of the card -->
-      <div class="card-front">
+      <!-- Front of the card -->      <div class="card-front">
         <div class="card-header">
-          <div class="bank-name">MyBank</div>
+          <div class="bank-name">
+            <div class="bank-logo">MB</div>
+            <div class="bank-text">Modern Bank India</div>
+          </div>
           <div class="card-chip">
             <svg width="50" height="40" viewBox="0 0 50 40" fill="none">
               <rect x="5" y="5" width="40" height="30" rx="3" stroke="currentColor" stroke-width="2" />
@@ -69,9 +70,8 @@
               <template v-else>•••</template>
             </div>
           </div>
-        </div>
-        <div class="card-info">
-          <p>This is a virtual debit card issued by MyBank.</p>
+        </div>        <div class="card-info">
+          <p>This is a virtual debit card issued by Modern Bank India.</p>
           <p>Card can be used for online transactions only.</p>
         </div>
       </div>
@@ -113,6 +113,10 @@ const props = defineProps({
   card: {
     type: Object,
     default: null
+  },
+  overrideFlip: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -163,6 +167,7 @@ const toggleDetails = (event) => {
   width: 100%;
   max-width: 400px;
   perspective: 1000px;
+  margin: 0 auto;
 }
 
 .virtual-card {
@@ -212,9 +217,28 @@ const toggleDetails = (event) => {
 }
 
 .bank-name {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
   font-weight: 600;
   letter-spacing: 1px;
+}
+
+.bank-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #4f46e5;
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  margin-right: 8px;
+  font-size: 0.8rem;
+}
+
+.bank-text {
+  font-size: 0.9rem;
 }
 
 .card-number {
@@ -295,8 +319,13 @@ const toggleDetails = (event) => {
 }
 
 /* Card states */
-.virtual-card.inactive {
+.virtual-card.inactive .card-front {
   background: linear-gradient(135deg, #64748b, #475569);
+  opacity: 0.9;
+}
+
+.virtual-card.inactive .card-back {
+  background: linear-gradient(135deg, #475569, #64748b);
   opacity: 0.9;
 }
 

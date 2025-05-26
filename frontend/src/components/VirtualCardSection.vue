@@ -1,5 +1,4 @@
-<template>
-  <div class="mb-8 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
+<template>  <div class="mb-8 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100 w-full max-w-7xl mx-auto">
     <div class="bg-gradient-to-r from-purple-500 to-indigo-600 px-4 py-5 sm:px-6 text-white">
       <div class="flex justify-between items-center">
         <div>
@@ -30,18 +29,15 @@
           Retry
         </button>
       </div>
-      
-      <div v-else-if="card" class="flex flex-col items-center">
+        <div v-else-if="card" class="flex flex-col items-center w-full">
         <VirtualCard :card="card" />
-        
         <div class="w-full mt-6 max-w-md text-center" v-if="card.status === 'inactive'">
           <p class="text-amber-700 bg-amber-50 p-3 rounded text-sm mb-3">
             Your card is awaiting activation by a banker. This usually takes 1-2 business days.
           </p>
         </div>
       </div>
-      
-      <div v-else class="flex flex-col items-center py-4">
+        <div v-else class="flex flex-col items-center py-4">
         <div class="w-full max-w-md text-center mb-6">
           <div class="p-6 border border-dashed border-gray-300 rounded-lg">
             <div class="h-16 w-16 mx-auto bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4">

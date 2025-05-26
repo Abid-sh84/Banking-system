@@ -49,6 +49,16 @@
                 <span class="inline-block h-2 w-2 rounded-full bg-green-500 mr-2"></span>
                 <span>Active Account</span>
               </div>
+              
+              <div class="mt-4">
+                <button 
+                  @click="showCardViewModal = true"
+                  class="inline-flex items-center px-3 py-2 border border-indigo-500 text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                  <CreditCard class="h-4 w-4 mr-2" />
+                  View your debit card
+                </button>
+              </div>
             </div>
             
             <div class="flex flex-col md:flex-row gap-4 mb-6">
@@ -316,6 +326,12 @@
       :current-balance="balance"
       @transaction-completed="handleTransactionComplete"
     />
+    
+    <!-- Card View Modal -->
+    <CardViewModal
+      v-model="showCardViewModal"
+      :card="virtualCard"
+    />
   </div>
 </template>
 
@@ -325,6 +341,8 @@ import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/authStore';
 import TransactionList from '../components/TransactionList.vue';
 import TransactionModal from '../components/TransactionModal.vue';
+import VirtualCardSection from '../components/VirtualCardSection.vue';
+import CardViewModal from '../components/CardViewModal.vue';
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 
@@ -344,7 +362,7 @@ import {
   Smile
 } from 'lucide-vue-next';
 import api from '../services/api';
-import VirtualCardSection from '../components/VirtualCardSection.vue';
+import { cardService } from '../services/api';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -356,12 +374,15 @@ const loading = ref(true);
 const modalOpen = ref(false);
 const transactionType = ref('deposit');
 const errorMessage = ref('');
-const customerData = ref(null); // Add customerData ref
+const customerData = ref(null);
+const showCardViewModal = ref(false);
+const virtualCard = ref(null);
 
 // Fetch data on component mount
 onMounted(async () => {
   console.log('CustomerDashboard mounted, fetching data...');
   await fetchData();
+  await fetchCardData();
 });
 
 const fetchData = async () => {
@@ -424,6 +445,23 @@ const fetchData = async () => {
       (error.response?.data?.message || error.message || 'Unknown error');
   } finally {
     loading.value = false;
+  }
+};
+
+// Fetch virtual card data
+const fetchCardData = async () => {
+  try {
+    const response = await cardService.getMyCard();
+    if (response.data && response.data.success) {
+      virtualCard.value = response.data.data.card;
+    }
+  } catch (err) {
+    // 404 is expected if user hasn't applied for a card yet
+    if (err.response && err.response.status === 404) {
+      virtualCard.value = null;
+    } else {
+      console.error('Error fetching virtual card data:', err);
+    }
   }
 };
 
