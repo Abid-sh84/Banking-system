@@ -1,11 +1,10 @@
-<template>  <div class="virtual-card-container" :class="{ 'flipped': isFlipped || overrideFlip }">
+<template>  <div class="virtual-card-container">
     <div 
       class="virtual-card" 
       :class="{ 
         'inactive': !card || card.status !== 'active',
         'active': card && card.status === 'active', 
-        'front': !(isFlipped || overrideFlip), 
-        'back': isFlipped || overrideFlip 
+        'flipped': isFlipped || overrideFlip
       }"
       @click="flipCard"
     >
@@ -154,12 +153,30 @@ const cardStatusText = computed(() => {
 // Methods
 const flipCard = () => {
   isFlipped.value = !isFlipped.value;
+  console.log('VirtualCard.flipCard - isFlipped set to:', isFlipped.value);
+};
+
+// These methods are used by the parent component
+const viewFront = () => {
+  isFlipped.value = false;
+  console.log('VirtualCard.viewFront - isFlipped set to:', isFlipped.value);
+};
+
+const viewBack = () => {
+  isFlipped.value = true;
+  console.log('VirtualCard.viewBack - isFlipped set to:', isFlipped.value);
 };
 
 const toggleDetails = (event) => {
   event.stopPropagation(); // Prevent card from flipping when clicking button
   showFullDetails.value = !showFullDetails.value;
 };
+
+// Expose methods to parent component
+defineExpose({
+  viewFront,
+  viewBack
+});
 </script>
 
 <style scoped>
@@ -179,6 +196,10 @@ const toggleDetails = (event) => {
   cursor: pointer;
   border-radius: 16px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.virtual-card.flipped {
+  transform: rotateY(180deg);
 }
 
 .card-front, .card-back {
@@ -204,10 +225,6 @@ const toggleDetails = (event) => {
   transform: rotateY(180deg);
   display: flex;
   flex-direction: column;
-}
-
-.virtual-card.flipped {
-  transform: rotateY(180deg);
 }
 
 .card-header {

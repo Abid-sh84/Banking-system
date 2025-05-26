@@ -1,7 +1,6 @@
 <!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\frontend\src\pages\Home.vue -->
-<template>  <div class="overflow-hidden w-full">    <!-- Hero section with enhanced banking design - full width -->
-    <div class="relative bg-gradient-to-r from-blue-900 to-indigo-800 text-white overflow-hidden w-full">
-      <div class="absolute right-0 top-0 h-full w-1/2 opacity-20">
+<template>  <div class="overflow-hidden w-full">    <!-- Hero section with enhanced banking design - full width -->    <div class="relative bg-gradient-to-r from-blue-900 to-indigo-800 text-white overflow-hidden w-full">
+      <div class="absolute inset-0 opacity-20">
         <img
           src="https://www.gkslegal.com/wp-content/uploads/2022/02/digital-banking.jpg"
           class="h-full w-full object-cover"

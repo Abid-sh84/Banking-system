@@ -33,9 +33,8 @@
             <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
               <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">
                 Your Virtual Debit Card
-              </h3>
-                <div v-if="card" class="flex justify-center mb-4">
-                <VirtualCard :card="card" :override-flip="isFlipped" />
+              </h3>                <div v-if="card" class="flex justify-center mb-4">
+                <VirtualCard :card="card" :override-flip="isFlipped" ref="virtualCard" />
               </div>
               <div v-else class="flex justify-center mb-4 p-6 border border-dashed border-gray-300 rounded-lg">
                 <div class="text-center">
@@ -47,17 +46,16 @@
                     You don't have a virtual card yet. Visit the Virtual Debit Card section to apply for one.
                   </p>
                 </div>
-              </div>
-                <div v-if="card" class="flex justify-center space-x-4 mt-2">
+              </div>                <div v-if="card" class="flex justify-center space-x-4 mt-2">
                 <button 
-                  @click="isFlipped = false"
+                  @click="viewFront"
                   class="px-4 py-2 text-sm font-medium rounded-md"
                   :class="!isFlipped ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'"
                 >
                   Front View
                 </button>
                 <button 
-                  @click="isFlipped = true"
+                  @click="viewBack"
                   class="px-4 py-2 text-sm font-medium rounded-md"
                   :class="isFlipped ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'"
                 >
@@ -90,7 +88,7 @@
 
 <script setup>
 import { ref, watchEffect } from 'vue';
-import { X as XIcon, Lock as LockIcon, CreditCard } from 'lucide-vue-next';
+import { X, Lock as LockIcon, CreditCard } from 'lucide-vue-next';
 import VirtualCard from './VirtualCard.vue';
 
 const props = defineProps({
@@ -108,12 +106,34 @@ const emit = defineEmits(['update:modelValue']);
 
 // State
 const isFlipped = ref(false);
+const virtualCard = ref(null);
+
+const viewFront = () => {
+  isFlipped.value = false;
+  console.log("Front view clicked, isFlipped set to:", isFlipped.value);
+  // Call the child component method directly
+  if (virtualCard.value) {
+    virtualCard.value.viewFront();
+  }
+};
+
+const viewBack = () => {
+  isFlipped.value = true;
+  console.log("Back view clicked, isFlipped set to:", isFlipped.value);
+  // Call the child component method directly
+  if (virtualCard.value) {
+    virtualCard.value.viewBack();
+  }
+};
 
 const closeModal = () => {
   emit('update:modelValue', false);
   // Reset the view to front when modal is closed
   setTimeout(() => {
     isFlipped.value = false;
+    if (virtualCard.value) {
+      virtualCard.value.viewFront();
+    }
   }, 300);
 };
 </script>
