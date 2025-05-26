@@ -133,8 +133,27 @@ async function initializeDatabase() {
         FOREIGN KEY (sender_id) REFERENCES customers(id),
         FOREIGN KEY (receiver_id) REFERENCES customers(id)
       )
+    `);    console.log('Transactions table checked/created');
+    
+    // Create virtual_cards table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS virtual_cards (
+        id SERIAL PRIMARY KEY,
+        customer_id INTEGER NOT NULL,
+        card_number VARCHAR(16) NOT NULL,
+        cardholder_name VARCHAR(100) NOT NULL,
+        expiry_date VARCHAR(5) NOT NULL,
+        cvv VARCHAR(3) NOT NULL,
+        status VARCHAR(20) CHECK (status IN ('active', 'inactive', 'blocked')) DEFAULT 'inactive',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+        CONSTRAINT unique_customer_card UNIQUE (customer_id)
+      )
     `);
-    console.log('Transactions table checked/created');    // Check if admin exists
+    console.log('Virtual Cards table checked/created');
+    
+    // Check if admin exists
     const adminResult = await pool.query(
       "SELECT * FROM bankers WHERE role = 'admin'"
     );

@@ -306,6 +306,9 @@
       </div>
     </div>
     
+    <!-- Virtual Debit Card Section -->
+    <VirtualCardSection />
+    
     <!-- Transaction Modal -->
     <TransactionModal
       v-model="modalOpen"
@@ -341,6 +344,7 @@ import {
   Smile
 } from 'lucide-vue-next';
 import api from '../services/api';
+import VirtualCardSection from '../components/VirtualCardSection.vue';
 
 const authStore = useAuthStore();
 const toast = useToast();

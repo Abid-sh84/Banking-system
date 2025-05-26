@@ -3,7 +3,7 @@
     <div class="relative bg-gradient-to-r from-blue-900 to-indigo-800 text-white overflow-hidden w-full">
       <div class="absolute right-0 top-0 h-full w-1/2 opacity-20">
         <img
-          src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
+          src="https://www.gkslegal.com/wp-content/uploads/2022/02/digital-banking.jpg"
           class="h-full w-full object-cover"
           alt="Banking background pattern"
         />

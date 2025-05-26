@@ -65,6 +65,7 @@ const authRoutes = require('./routes/auth.routes');
 const customerRoutes = require('./routes/customer.routes');
 const bankerRoutes = require('./routes/banker.routes');
 const transactionRoutes = require('./routes/transaction.routes');
+const cardRoutes = require('./routes/card.routes');
 
 // Middleware to log all incoming requests
 app.use((req, res, next) => {
@@ -81,6 +82,8 @@ app.use('/api/banker', bankerRoutes);  // Make sure this matches frontend (not p
 app.use('/banker', bankerRoutes); // Duplicate without /api prefix
 app.use('/api/transactions', transactionRoutes);
 app.use('/transactions', transactionRoutes); // Duplicate without /api prefix
+app.use('/api/cards', cardRoutes);
+app.use('/cards', cardRoutes); // Duplicate without /api prefix
 
 // Error handling middleware with improved logging
 app.use((err, req, res, next) => {

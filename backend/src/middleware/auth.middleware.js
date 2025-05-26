@@ -74,8 +74,40 @@ const checkUserStatus = asyncHandler(async (req, res, next) => {
   next();
 });
 
+// Role-based middlewares for convenience
+const isCustomer = (req, res, next) => {
+  if (req.user.role !== 'customer') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Customer privileges required.'
+    });
+  }
+  next();
+};
+
+const isBanker = (req, res, next) => {
+  if (req.user.role !== 'banker' && req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Banker privileges required.'
+    });
+  }
+  next();
+};
+
+// Authentication middleware shortcut that combines verification and adds token extraction
+// Renamed from verifyAuth to authMiddleware to avoid naming conflict with verifyToken
+const authMiddleware = (req, res, next) => {
+  authenticate(req, res, next);
+};
+
 module.exports = {
   authenticate,
   authorize,
-  checkUserStatus
+  checkUserStatus,
+  isCustomer,
+  isBanker,
+  // Export both names for backward compatibility
+  verifyAuth: authMiddleware,
+  authMiddleware
 };

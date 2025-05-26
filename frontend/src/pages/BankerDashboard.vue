@@ -306,6 +306,9 @@
         </ul>
       </div>
       
+      <!-- Virtual Card Management -->
+      <VirtualCardManagement />
+      
       <!-- Recent Transactions - responsive table with enhanced features -->
       <div class="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
         <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
@@ -538,6 +541,7 @@ import PerformanceMetrics from '../components/PerformanceMetrics.vue';
 import TransactionFilters from '../components/TransactionFilters.vue';
 import ExportReportModal from '../components/ExportReportModal.vue';
 import TransactionApprovalModal from '../components/TransactionApprovalModal.vue';
+import VirtualCardManagement from '../components/VirtualCardManagement.vue';
 
 const authStore = useAuthStore();
 const toast = useToast();

@@ -243,4 +243,32 @@ export const bankerService = {
   })
 };
 
+// Card services
+export const cardService = {
+  // Apply for a virtual debit card
+  applyForCard: (termsAccepted) => {
+    return api.post('/cards/apply', { termsAccepted });
+  },
+  
+  // Get current customer's card
+  getMyCard: () => {
+    return api.get('/cards/my-card');
+  },
+  
+  // Get full card details (including sensitive data)
+  getFullCardDetails: () => {
+    return api.get('/cards/my-card/full-details');
+  },
+  
+  // Get all cards (banker only)
+  getAllCards: () => {
+    return api.get('/cards/all');
+  },
+  
+  // Update card status (banker only)
+  updateCardStatus: (cardId, status) => {
+    return api.patch(`/cards/${cardId}/status`, { status });
+  }
+};
+
 export default api;
