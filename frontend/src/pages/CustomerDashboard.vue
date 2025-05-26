@@ -104,6 +104,13 @@
                   >
                     <ArrowUpRight class="h-4 w-4 mr-2" /> Withdraw
                   </button>
+                  <button 
+                    @click="openTransferModal"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                    :disabled="balance <= 0"
+                  >
+                    <Send class="h-4 w-4 mr-2" /> Transfer
+                  </button>
                 </div>
               </div>
             </div>
@@ -320,17 +327,23 @@
     <VirtualCardSection />
     
     <!-- Transaction Modal -->
-    <TransactionModal
+    <TransactionModal 
       v-model="modalOpen"
-      :transaction-type="transactionType"
-      :current-balance="balance"
-      @transaction-completed="handleTransactionComplete"
+      :transaction-type="transactionType" 
+      @transaction-complete="handleTransactionComplete"
+    />
+
+    <!-- Transfer Modal -->
+    <TransferModal
+      v-model="transferModalOpen"
+      :available-balance="balance"
+      @transfer-complete="handleTransferComplete"
     />
     
     <!-- Card View Modal -->
-    <CardViewModal
+    <CardViewModal 
       v-model="showCardViewModal"
-      :card="virtualCard"
+      :card-data="virtualCard"
     />
   </div>
 </template>
@@ -343,11 +356,11 @@ import TransactionList from '../components/TransactionList.vue';
 import TransactionModal from '../components/TransactionModal.vue';
 import VirtualCardSection from '../components/VirtualCardSection.vue';
 import CardViewModal from '../components/CardViewModal.vue';
+import TransferModal from '../components/TransferModal.vue';
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 
-  DollarSign, 
-  Calendar, 
+  Send,
   Loader2, 
   CreditCard, 
   ClipboardList, 
@@ -377,6 +390,7 @@ const errorMessage = ref('');
 const customerData = ref(null);
 const showCardViewModal = ref(false);
 const virtualCard = ref(null);
+const transferModalOpen = ref(false); // New state for transfer modal
 
 // Fetch data on component mount
 onMounted(async () => {
@@ -555,6 +569,11 @@ const openTransactionModal = (type) => {
   modalOpen.value = true;
 };
 
+// Open transfer modal
+const openTransferModal = () => {
+  transferModalOpen.value = true;
+};
+
 // Transaction types in the UI might not match backend expectations
 const mapTransactionType = (uiType) => {
   const typeMap = {
@@ -600,8 +619,46 @@ const handleTransactionComplete = async (transaction) => {
     
   } catch (error) {
     console.error('Transaction error:', error);
-    const errorMessage = error.response?.data?.message || 'Transaction failed. Please try again.';
-    toast.error(errorMessage);
+    toast.error(error.response?.data?.message || 'Failed to process transaction');
+  }
+};
+
+// Handle successful money transfer
+const handleTransferComplete = async (transferData) => {
+  try {
+    console.log('Transfer completed:', transferData);
+    
+    // Update balance from the transfer response
+    if (transferData.balance !== undefined) {
+      balance.value = transferData.balance;
+    }
+    
+    // Create a transaction object to add to the list
+    const newTransaction = {
+      id: Date.now(), // Temporary ID until we refresh
+      type: 'transfer_out',
+      amount: transferData.amount,
+      description: transferData.description || `Transfer to ${transferData.recipientName}`,
+      created_at: new Date().toISOString(),
+      status: 'completed',
+      recipient_name: transferData.recipientName,
+      recipient_account: transferData.recipientAccount
+    };
+    
+    // Add to transactions list
+    transactions.value = Array.isArray(transactions.value) 
+      ? [newTransaction, ...transactions.value] 
+      : [newTransaction];
+    
+    // Show success message
+    toast.success(`₹${transferData.amount.toLocaleString('en-IN')} successfully transferred to ${transferData.recipientName}`);
+    
+    // Refresh data to get latest transactions
+    setTimeout(() => fetchData(), 1000);
+    
+  } catch (error) {
+    console.error('Error handling transfer completion:', error);
+    toast.error('There was an issue updating your dashboard after the transfer');
   }
 };
 </script>

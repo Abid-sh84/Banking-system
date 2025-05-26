@@ -83,14 +83,14 @@
                     </div>
                   </div>
 
-                  <div class="mb-6">
+                  <!-- <div class="mb-6">
                     <div class="flex justify-between items-center mb-2">
                       <span class="text-sm font-medium text-gray-500">Balance</span>
                       <span class="text-sm font-medium text-green-500">+2.5%</span>
                     </div>
                     <div class="text-2xl font-bold text-gray-900">₹1,42,350.75</div>
                     <div class="text-xs text-gray-500 mt-1">Current Account **** 4832</div>
-                  </div>
+                  </div> -->
 
                   <div class="space-y-4">
                     <div class="bg-gray-50 p-3 rounded-lg flex items-center hover:bg-gray-100 transition-colors duration-200">

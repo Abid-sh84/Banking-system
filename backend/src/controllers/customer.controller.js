@@ -151,11 +151,92 @@ const createTransaction = asyncHandler(async (req, res) => {
   }
 });
 
+// Find a recipient by phone or account number
+const findRecipient = asyncHandler(async (req, res) => {
+  const { phone, account } = req.query;
+  const currentUserId = req.user.id;
+  
+  try {
+    let recipient;
+    
+    if (phone) {
+      recipient = await CustomerModel.findByPhoneOrAccount(phone, 'phone');
+    } else if (account) {
+      recipient = await CustomerModel.findByPhoneOrAccount(account, 'account');
+    } else {
+      throw new ApiError(400, 'Phone number or account number is required');
+    }
+    
+    // Don't allow transfers to self
+    if (recipient.id === currentUserId) {
+      throw new ApiError(400, 'Cannot transfer money to your own account');
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: recipient
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(404, 'Recipient not found');
+  }
+});
+
+// Transfer money to another customer
+const transferMoney = asyncHandler(async (req, res) => {
+  const { id: senderId } = req.user;
+  const { recipientId, amount, description } = req.body;
+  
+  // Validate inputs
+  if (!recipientId) {
+    throw new ApiError(400, 'Recipient ID is required');
+  }
+  
+  if (!amount || isNaN(amount) || amount <= 0) {
+    throw new ApiError(400, 'Valid amount is required');
+  }
+  
+  // Don't allow transfers to self - convert both IDs to strings for comparison
+  if (String(recipientId) === String(senderId)) {
+    throw new ApiError(400, 'Cannot transfer money to your own account');
+  }
+    try {
+    // Process the transfer
+    const result = await CustomerModel.transferMoney(senderId, recipientId, parseFloat(amount), description);
+    
+    // Return the updated balance and transaction info
+    res.status(200).json({    success: true,
+    message: 'Transfer completed successfully',
+    data: {
+      balance: result.balance,
+      transactionId: result.transactionId
+    }
+    });
+  } catch (error) {
+    console.error('Transfer error:', {
+      senderId,
+      recipientId, 
+      amount,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(500, `Transfer failed: ${error.message}`);
+  }
+});
+
 module.exports = {
   getProfile,
   updateProfile,
   changePassword,
   getTransactions,
   getTransactionById,
-  createTransaction
+  createTransaction,
+  findRecipient,
+  transferMoney
 };

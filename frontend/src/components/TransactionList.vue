@@ -17,10 +17,14 @@
             </div>
             <div>              
               <p class="text-sm font-medium text-gray-900 capitalize">
-                {{ transaction.type }}
+                {{ getFormattedTransactionType(transaction.type) }}
               </p>
               <p class="text-sm text-gray-500">
                 {{ formatDate(transaction.created_at || transaction.date) }}
+              </p>
+              <!-- Show recipient for transfers -->
+              <p v-if="isTransferTransaction(transaction) && transaction.recipient_name" class="text-xs text-gray-500 mt-1">
+                To: {{ transaction.recipient_name }}
               </p>
             </div>
           </div>
@@ -40,7 +44,7 @@
 
 <script setup>
 import { ref, defineProps, computed } from 'vue';
-import { ArrowUpRight, ArrowDownLeft } from 'lucide-vue-next';
+import { ArrowUpRight, ArrowDownLeft, Send, ArrowDownRight } from 'lucide-vue-next';
 
 const props = defineProps({
   transactions: {
@@ -74,6 +78,21 @@ const getTransactionTypeClass = (type) => {
         amountClass: 'text-red-600',
         icon: ArrowUpRight
       };
+    case 'transfer':
+    case 'transfer_out':
+      return {
+        bgClass: 'bg-blue-50',
+        iconClass: 'text-blue-500',
+        amountClass: 'text-blue-600',
+        icon: Send
+      };
+    case 'transfer_in':
+      return {
+        bgClass: 'bg-green-50',
+        iconClass: 'text-green-500',
+        amountClass: 'text-green-600',
+        icon: ArrowDownRight
+      };
     default:
       return {
         bgClass: 'bg-gray-50',
@@ -85,7 +104,12 @@ const getTransactionTypeClass = (type) => {
 };
 
 const getAmountPrefix = (type) => {
-  return type === 'deposit' ? '+ ' : '- ';
+  if (type === 'deposit' || type === 'transfer_in') {
+    return '+ ';
+  } else if (type === 'withdrawal' || type === 'withdraw' || type === 'transfer_out' || type === 'transfer') {
+    return '- ';
+  }
+  return '';
 };
 
 // Custom rupee icon component if needed
@@ -102,52 +126,41 @@ const RupeeIcon = {
 };
 
 const formatCurrency = (amount) => {
-  try {
-    // Ensure amount is a number
-    const numAmount = parseFloat(amount);
-    
-    // Check if it's a valid number
-    if (isNaN(numAmount)) {
-      return '₹0.00';
-    }
-    
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2
-    }).format(numAmount);
-  } catch (e) {
-    console.error('Error formatting currency:', e, amount);
-    return '₹0.00';
-  }
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2
+  }).format(amount);
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  
-  try {
-    // Log the input to help with debugging
-    console.log('Formatting date:', dateString, typeof dateString);
-    
-    // Handle different date formats
-    const date = new Date(dateString);
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      console.warn('Invalid date:', dateString);
-      return 'N/A';
-    }
-    
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  } catch (e) {
-    console.error('Error formatting date:', e, dateString);
-    return 'N/A';
-  }
+  if (!dateString) return 'Unknown date';
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
+
+// Helper function to check if transaction is a transfer
+const isTransferTransaction = (transaction) => {
+  return transaction.type === 'transfer' || 
+         transaction.type === 'transfer_out' || 
+         transaction.type === 'transfer_in';
+};
+
+// Get formatted transaction type for display
+const getFormattedTransactionType = (type) => {
+  const typeMap = {
+    'deposit': 'Deposit',
+    'withdrawal': 'Withdrawal',
+    'withdraw': 'Withdrawal',
+    'transfer': 'Transfer',
+    'transfer_out': 'Money Sent',
+    'transfer_in': 'Money Received'
+  };
+  return typeMap[type] || type;
 };
 </script>

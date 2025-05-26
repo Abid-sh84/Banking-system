@@ -247,6 +247,141 @@ class CustomerModel {  // Create a new customer
       throw new ApiError(500, `Error updating customer ID: ${error.message}`);
     }
   }
+  
+  // Find customer by phone or account number (for transfers)
+  static async findByPhoneOrAccount(identifier, type) {
+    try {
+      let queryString, params;
+      
+      if (type === 'phone') {
+        queryString = 'SELECT id, name, account_number FROM customers WHERE phone = $1';
+        params = [identifier];
+      } else if (type === 'account') {
+        queryString = 'SELECT id, name, account_number FROM customers WHERE account_number = $1';
+        params = [identifier];
+      } else {
+        throw new ApiError(400, 'Invalid search type');
+      }
+      
+      const result = await query(queryString, params);
+      
+      if (result.rows.length === 0) {
+        throw new ApiError(404, 'Customer not found');
+      }
+      
+      // Return limited information for security
+      return result.rows[0];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, `Error finding customer: ${error.message}`);
+    }
+  }
+    // Transfer money between accounts
+  static async transferMoney(senderId, recipientId, amount, description) {
+    const client = await pool.connect();
+    
+    try {
+      console.log('Starting transfer process:', {
+        senderId, 
+        recipientId,
+        amount,
+        senderIdType: typeof senderId,
+        recipientIdType: typeof recipientId
+      });
+      
+      // Start transaction
+      await client.query('BEGIN');
+        // Get current balances - ensure IDs are parsed as integers for PostgreSQL
+      const senderIdNum = parseInt(senderId, 10);
+      const recipientIdNum = parseInt(recipientId, 10);
+      
+      if (isNaN(senderIdNum) || isNaN(recipientIdNum)) {
+        throw new ApiError(400, 'Invalid sender or recipient ID');
+      }
+      
+      const senderResult = await client.query(
+        'SELECT balance FROM customers WHERE id = $1 FOR UPDATE',
+        [senderIdNum]
+      );
+      
+      if (senderResult.rows.length === 0) {
+        throw new ApiError(404, 'Sender account not found');
+      }
+      
+      const recipientResult = await client.query(
+        'SELECT id FROM customers WHERE id = $1 FOR UPDATE',
+        [recipientIdNum]
+      );
+      
+      if (recipientResult.rows.length === 0) {
+        throw new ApiError(404, 'Recipient account not found');
+      }
+      
+      const senderBalance = parseFloat(senderResult.rows[0].balance);
+      
+      // Check if sender has enough balance
+      if (senderBalance < amount) {
+        throw new ApiError(400, 'Insufficient balance');
+      }
+        // Update sender's balance
+      await client.query(
+        'UPDATE customers SET balance = balance - $1, updated_at = NOW() WHERE id = $2',
+        [amount, senderIdNum]
+      );
+      
+      // Update recipient's balance
+      await client.query(
+        'UPDATE customers SET balance = balance + $1, updated_at = NOW() WHERE id = $2',
+        [amount, recipientIdNum]
+      );
+        // Create transaction records
+      const transferId = 'TRF' + Date.now() + Math.floor(Math.random() * 1000);
+        // Sender's transaction record (withdrawal)
+      const senderTxResult = await client.query(
+        'INSERT INTO transactions (customer_id, type, amount, description, sender_id, receiver_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [senderIdNum, 'transfer', amount, description || 'Transfer to another account', senderIdNum, recipientIdNum, 'completed']
+      );
+      
+      // Recipient's transaction record (deposit)
+      await client.query(
+        'INSERT INTO transactions (customer_id, type, amount, description, sender_id, receiver_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [recipientIdNum, 'received', amount, description || 'Transfer from another account', senderIdNum, recipientIdNum, 'completed']
+      );
+      
+      // Commit transaction
+      await client.query('COMMIT');
+        // Get updated sender balance
+      const updatedSenderResult = await client.query(
+        'SELECT balance FROM customers WHERE id = $1',
+        [senderIdNum]
+      );
+        return {
+        success: true,
+        transactionId: senderTxResult.rows[0].id,
+        balance: parseFloat(updatedSenderResult.rows[0].balance)
+      };} catch (error) {
+      // Rollback transaction in case of error
+      await client.query('ROLLBACK');
+      
+      console.error('Transfer error in model:', {
+        senderId,
+        recipientId,
+        amount,
+        error: error.message,
+        stack: error.stack
+      });
+      
+      // Handle specific database errors
+      if (error.code) {
+        console.error(`Database error code: ${error.code}, ${error.detail || ''}`);
+      }
+      
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, `Transfer failed: ${error.message}`);
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = CustomerModel;

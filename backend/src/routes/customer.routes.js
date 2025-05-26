@@ -6,7 +6,9 @@ const {
   changePassword,
   getTransactions,
   getTransactionById,
-  createTransaction
+  createTransaction,
+  findRecipient,
+  transferMoney
 } = require('../controllers/customer.controller');
 const { authenticate, authorize, checkUserStatus } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validation.middleware');
@@ -39,6 +41,15 @@ const createTransactionSchema = {
   }
 };
 
+const transferSchema = {
+  required: ['recipientId', 'amount'],
+  properties: {
+    recipientId: { type: 'number' },
+    amount: { type: 'number', minimum: 0.01 },
+    description: { type: 'string' }
+  }
+};
+
 // Apply middleware to all routes
 router.use(authenticate);
 router.use(authorize('customer'));
@@ -51,5 +62,7 @@ router.post('/change-password', validateRequest(changePasswordSchema), changePas
 router.get('/transactions', getTransactions);
 router.get('/transactions/:id', getTransactionById);
 router.post('/transactions', validateRequest(createTransactionSchema), createTransaction);
+router.get('/find-recipient', findRecipient);
+router.post('/transfer', validateRequest(transferSchema), transferMoney);
 
 module.exports = router;

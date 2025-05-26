@@ -48,7 +48,45 @@
                 <span class="font-mono">{{ profile.account_number }}</span>
               </dd>
             </div>
+
+            <!-- Address field -->
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">
+                Address
+              </dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex items-center">
+                <span v-if="!editingAddress">{{ profile.address || 'No address provided' }}</span>
+                <textarea
+                  v-else
+                  v-model="addressInput"
+                  rows="3"
+                  class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                ></textarea>
+                <button 
+                  v-if="!editingAddress"
+                  @click="startEditingAddress" 
+                  class="ml-4 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                >
+                  Edit
+                </button>
+                <div v-else class="flex space-x-2 ml-4">
+                  <button 
+                    @click="saveAddress" 
+                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    @click="cancelEditAddress" 
+                    class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">
                 Phone Number
               </dt>
@@ -186,11 +224,14 @@ const profile = ref({
   password_changed_at: '',
   customer_id: '',
   account_number: '',
-  phone: ''
+  phone: '',
+  address: '' // Add address field
 });
 const loading = ref(true);
 const editingPhone = ref(false);
 const phoneInput = ref('');
+const editingAddress = ref(false); // Address editing state
+const addressInput = ref(''); // Address input field
 
 onMounted(async () => {
   await fetchProfile();
@@ -263,6 +304,44 @@ const savePhone = async () => {
   } catch (error) {
     console.error('Error updating phone:', error);
     toast.error('Failed to update phone number. Please try again.');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Address editing methods
+const startEditingAddress = () => {
+  addressInput.value = profile.value.address || '';
+  editingAddress.value = true;
+};
+
+const cancelEditAddress = () => {
+  editingAddress.value = false;
+};
+
+const saveAddress = async () => {
+  try {
+    loading.value = true;
+    
+    // Validate address
+    if (!addressInput.value || addressInput.value.trim().length < 5) {
+      toast.error('Please enter a valid address (minimum 5 characters)');
+      return;
+    }
+    
+    // Update profile
+    const response = await api.put('/customers/profile', {
+      name: profile.value.name,
+      address: addressInput.value,
+      phone: profile.value.phone
+    });
+    
+    profile.value = response.data.data;
+    editingAddress.value = false;
+    toast.success('Address updated successfully');
+  } catch (error) {
+    console.error('Error updating address:', error);
+    toast.error('Failed to update address. Please try again.');
   } finally {
     loading.value = false;
   }
