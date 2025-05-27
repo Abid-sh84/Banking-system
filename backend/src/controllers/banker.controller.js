@@ -473,6 +473,58 @@ const deleteCustomer = asyncHandler(async (req, res) => {
   }
 });
 
+// Update customer details
+const updateCustomer = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, address, phone, email, city, state, zip } = req.body;
+  
+  try {
+    // Validate required fields
+    if (!name && !address && !phone && !email && !city && !state && !zip) {
+      throw new ApiError(400, 'At least one field is required for update');
+    }
+    
+    // Find customer first to check if exists
+    const customer = await CustomerModel.findById(id);
+    if (!customer) {
+      throw new ApiError(404, 'Customer not found');
+    }
+    
+    // Format address with city, state, and zip if they're provided
+    // This ensures backward compatibility with the existing `update` method
+    let fullAddress = address || '';
+    if (city || state || zip) {
+      // Only append new address components if they are provided
+      const cityPart = city ? `, ${city}` : '';
+      const statePart = state ? `, ${state}` : '';
+      const zipPart = zip ? ` ${zip}` : '';
+      fullAddress = `${fullAddress}${cityPart}${statePart}${zipPart}`;
+    }
+    
+    // Create update data object with only provided fields
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (fullAddress) updateData.address = fullAddress;
+    if (phone) updateData.phone = phone;
+    if (email) updateData.email = email;
+    
+    // Update customer details
+    const updatedCustomer = await CustomerModel.update(id, updateData);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Customer details updated successfully',
+      data: {
+        customer: updatedCustomer
+      }
+    });
+  } catch (error) {
+    console.error('Error updating customer details:', error);
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(500, `Error updating customer details: ${error.message}`);
+  }
+});
+
 module.exports = {
   getProfile,
   changePassword,
@@ -486,5 +538,6 @@ module.exports = {
   rejectTransaction,
   exportTransactions,
   updateCustomerStatus,
-  deleteCustomer
+  deleteCustomer,
+  updateCustomer
 };

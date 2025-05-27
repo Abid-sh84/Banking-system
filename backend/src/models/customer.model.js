@@ -85,16 +85,58 @@ class CustomerModel {  // Create a new customer
       throw new ApiError(500, `Error finding customer: ${error.message}`);
     }
   }
-  
-  // Update customer profile
+    // Update customer profile
   static async update(id, updateData) {
-    const { name, address, phone } = updateData;
+    const { name, address, phone, email } = updateData;
     
     try {
-      const result = await query(
-        'UPDATE customers SET name = $1, address = $2, phone = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
-        [name, address, phone, id]
-      );
+      let sql = 'UPDATE customers SET ';
+      const params = [];
+      const updates = [];
+      
+      // Build dynamic SQL query with only fields that are provided
+      if (name !== undefined) {
+        params.push(name);
+        updates.push(`name = $${params.length}`);
+      }
+      
+      if (address !== undefined) {
+        params.push(address);
+        updates.push(`address = $${params.length}`);
+      }
+      
+      if (phone !== undefined) {
+        params.push(phone);
+        updates.push(`phone = $${params.length}`);
+      }
+      
+      if (email !== undefined) {
+        // Check if email already exists for another user
+        const emailCheck = await query(
+          'SELECT id FROM customers WHERE email = $1 AND id != $2',
+          [email, id]
+        );
+        
+        if (emailCheck.rows.length > 0) {
+          throw new ApiError(409, 'Email already in use by another customer');
+        }
+        
+        params.push(email);
+        updates.push(`email = $${params.length}`);
+      }
+      
+      // Add updated_at timestamp
+      updates.push(`updated_at = NOW()`);
+      
+      // Complete the SQL query
+      sql += updates.join(', ');
+      
+      // Add WHERE clause and RETURNING
+      params.push(id);
+      sql += ` WHERE id = $${params.length} RETURNING *`;
+      
+      // Execute the query
+      const result = await query(sql, params);
       
       if (result.rowCount === 0) {
         throw new ApiError(404, 'Customer not found');
