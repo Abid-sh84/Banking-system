@@ -339,11 +339,10 @@
       :available-balance="balance"
       @transfer-complete="handleTransferComplete"
     />
-    
-    <!-- Card View Modal -->
+      <!-- Card View Modal -->
     <CardViewModal 
       v-model="showCardViewModal"
-      :card-data="virtualCard"
+      :card="virtualCard"
     />
   </div>
 </template>
