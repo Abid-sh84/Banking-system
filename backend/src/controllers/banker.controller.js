@@ -403,9 +403,75 @@ function generateCSV(data) {
     });
     csv += values.join(',') + '\r\n';
   });
-  
-  return csv;
+    return csv;
 }
+
+// Update customer status (activate/deactivate/freeze/unfreeze)
+const updateCustomerStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  // Validate status value (case-insensitive)
+  const validStatuses = ['active', 'inactive', 'frozen'];
+  const normalizedStatus = status ? status.toLowerCase() : '';
+  
+  if (!validStatuses.includes(normalizedStatus)) {
+    throw new ApiError(400, `Invalid status value. Must be one of: ${validStatuses.join(', ')}`);
+  }
+  
+  // Just a note: 'frozen' will be mapped to 'suspended' in the model
+  
+  try {
+    // Find customer first to check if exists
+    const customer = await CustomerModel.findById(id);
+    if (!customer) {
+      throw new ApiError(404, 'Customer not found');
+    }
+    
+    // Update customer status
+    await CustomerModel.updateStatus(id, normalizedStatus);
+    
+    // Get updated customer
+    const updatedCustomer = await CustomerModel.findById(id);
+    
+    res.status(200).json({
+      success: true,
+      message: `Customer status updated to ${normalizedStatus}`,
+      data: {
+        customer: updatedCustomer
+      }
+    });
+  } catch (error) {
+    console.error('Error updating customer status:', error);
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(500, `Error updating customer status: ${error.message}`);
+  }
+});
+
+// Delete customer account
+const deleteCustomer = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Find customer first to check if exists
+    const customer = await CustomerModel.findById(id);
+    if (!customer) {
+      throw new ApiError(404, 'Customer not found');
+    }
+    
+    // Delete customer
+    await CustomerModel.delete(id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Customer account deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting customer account:', error);
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(500, `Error deleting customer account: ${error.message}`);
+  }
+});
 
 module.exports = {
   getProfile,
@@ -418,5 +484,7 @@ module.exports = {
   createCustomerDeposit,
   approveTransaction,
   rejectTransaction,
-  exportTransactions
+  exportTransactions,
+  updateCustomerStatus,
+  deleteCustomer
 };

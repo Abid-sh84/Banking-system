@@ -44,10 +44,71 @@
               </div>
               <div class="text-3xl font-bold text-gray-900">
                 {{ formatCurrency(balance) }}
+              </div>              <div class="mt-1 text-sm flex items-center" 
+                :class="{
+                  'text-green-600': normalizedStatus === 'active',
+                  'text-red-600': normalizedStatus === 'inactive',
+                  'text-yellow-600': ['frozen', 'suspended'].includes(normalizedStatus)
+                }"
+              >
+                <span class="inline-block h-2 w-2 rounded-full mr-2"
+                  :class="{
+                    'bg-green-500': normalizedStatus === 'active',
+                    'bg-red-500': normalizedStatus === 'inactive',
+                    'bg-yellow-500': ['frozen', 'suspended'].includes(normalizedStatus)
+                  }"
+                ></span>
+                <span>
+                  {{ 
+                    normalizedStatus === 'active' ? 'Active Account' : 
+                    ['frozen', 'suspended'].includes(normalizedStatus) ? 'Account Frozen - No Transactions Allowed' : 
+                    normalizedStatus === 'inactive' ? 'Account Inactive' : 'Unknown Status'
+                  }}
+                </span>
               </div>
-              <div class="mt-1 text-sm text-gray-500 flex items-center">
-                <span class="inline-block h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-                <span>Active Account</span>
+              
+              <!-- Warning banner for frozen or inactive accounts -->
+              <div v-if="normalizedStatus !== 'active'" 
+                class="mt-4 p-4 rounded-md"
+                :class="{
+                  'bg-yellow-50 border border-yellow-200': ['frozen', 'suspended'].includes(normalizedStatus),
+                  'bg-red-50 border border-red-200': normalizedStatus === 'inactive'
+                }"
+              >
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <AlertTriangle v-if="accountStatus === 'frozen'"
+                      class="h-5 w-5 text-yellow-600" />
+                    <Ban v-else-if="accountStatus === 'inactive'"
+                      class="h-5 w-5 text-red-600" />
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-medium"
+                      :class="{
+                        'text-yellow-800': accountStatus === 'frozen',
+                        'text-red-800': accountStatus === 'inactive'
+                      }"
+                    >
+                      {{ 
+                        accountStatus === 'frozen' ? 'Account Frozen' : 
+                        accountStatus === 'inactive' ? 'Account Inactive' : 'Account Restricted'
+                      }}
+                    </h3>
+                    <div class="mt-2 text-sm"
+                      :class="{
+                        'text-yellow-700': accountStatus === 'frozen',
+                        'text-red-700': accountStatus === 'inactive'
+                      }"
+                    >
+                      <p>
+                        {{ 
+                          accountStatus === 'frozen' ? 'Your account is currently frozen. You can view your account details, but transactions are disabled. Please contact bank support for assistance.' : 
+                          accountStatus === 'inactive' ? 'Your account is inactive. Please contact bank support to reactivate your account.' : 'Please contact bank support.'
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               <div class="mt-4">
@@ -90,24 +151,30 @@
               
               <div class="flex-1 bg-gray-50 rounded-lg p-4 border border-gray-100">
                 <div class="text-sm font-medium text-gray-500 mb-3">Quick Actions</div>
-                <div class="flex flex-wrap gap-2">
-                  <button 
+                <div class="flex flex-wrap gap-2">                  <button 
                     @click="openTransactionModal('deposit')"
                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
+                    :disabled="accountStatus !== 'active'"
+                    :class="{ 'opacity-50 cursor-not-allowed': accountStatus !== 'active' }"
+                    :title="accountStatus !== 'active' ? 'Transactions disabled due to account status' : ''"
                   >
                     <ArrowDownLeft class="h-4 w-4 mr-2" /> Deposit
                   </button>
                   <button 
                     @click="openTransactionModal('withdraw')"
                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
-                    :disabled="balance <= 0"
+                    :disabled="balance <= 0 || accountStatus !== 'active'"
+                    :class="{ 'opacity-50 cursor-not-allowed': balance <= 0 || accountStatus !== 'active' }"
+                    :title="accountStatus !== 'active' ? 'Transactions disabled due to account status' : (balance <= 0 ? 'Insufficient balance' : '')"
                   >
                     <ArrowUpRight class="h-4 w-4 mr-2" /> Withdraw
                   </button>
                   <button 
                     @click="openTransferModal"
                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-                    :disabled="balance <= 0"
+                    :disabled="balance <= 0 || accountStatus !== 'active'"
+                    :class="{ 'opacity-50 cursor-not-allowed': balance <= 0 || accountStatus !== 'active' }"
+                    :title="accountStatus !== 'active' ? 'Transactions disabled due to account status' : (balance <= 0 ? 'Insufficient balance' : '')"
                   >
                     <Send class="h-4 w-4 mr-2" /> Transfer
                   </button>
@@ -371,7 +438,9 @@ import {
   TrendingDown,
   Wallet,
   Activity,
-  Smile
+  Smile,
+  AlertTriangle,
+  Ban
 } from 'lucide-vue-next';
 import api from '../services/api';
 import { cardService } from '../services/api';
@@ -387,6 +456,7 @@ const modalOpen = ref(false);
 const transactionType = ref('deposit');
 const errorMessage = ref('');
 const customerData = ref(null);
+const accountStatus = ref('active'); // Default to active until we get data from API
 const showCardViewModal = ref(false);
 const virtualCard = ref(null);
 const transferModalOpen = ref(false); // New state for transfer modal
@@ -412,11 +482,21 @@ const fetchData = async () => {
       // Fetch account balance and profile
       const profileResponse = await api.get('/customers/profile');
       console.log('Profile response:', profileResponse.data);
-      
-      // Extract and save the full customer data
+        // Extract and save the full customer data
       if (profileResponse.data && profileResponse.data.data) {
         customerData.value = profileResponse.data.data;
         balance.value = profileResponse.data.data.balance || 0;
+        
+        // Set account status
+        accountStatus.value = profileResponse.data.data.status || 'active';
+        console.log('Account status set to:', accountStatus.value);
+        
+        // Show notification if account is frozen or inactive
+        if (accountStatus.value === 'frozen') {
+          toast.warning('Your account is frozen. You can view your account details, but transactions are disabled.');
+        } else if (accountStatus.value === 'inactive') {
+          toast.error('Your account is inactive. Please contact bank support.');
+        }
       } else {
         console.error('Invalid profile response structure:', profileResponse.data);
         errorMessage.value = 'Failed to parse profile data.';
@@ -523,6 +603,12 @@ const formatCurrency = (amount) => {
     minimumFractionDigits: 2
   }).format(amount);
 };
+
+// Normalized status for case-insensitive comparisons
+const normalizedStatus = computed(() => {
+  if (!accountStatus.value) return 'unknown';
+  return accountStatus.value.toLowerCase();
+});
 
 // Account Type computed properties
 const accountTypeFormatted = computed(() => {

@@ -72,9 +72,9 @@
         <!-- Total Deposits -->
         <div class="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow duration-300 transform hover:scale-[1.02]">
           <div class="px-4 py-5 sm:p-6">
-            <div class="flex items-center">
+      <div class="flex items-center">
               <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
-                <DollarSign class="h-6 w-6 text-green-600" />
+                <InrIcon class="h-6 w-6 text-green-600" />
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>                  
@@ -104,9 +104,8 @@
         <!-- Total Withdrawals -->
         <div class="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow duration-300 transform hover:scale-[1.02]">
           <div class="px-4 py-5 sm:p-6">
-            <div class="flex items-center">
-              <div class="flex-shrink-0 bg-red-100 rounded-md p-3">
-                <DollarSign class="h-6 w-6 text-red-600" />
+            <div class="flex items-center">              <div class="flex-shrink-0 bg-red-100 rounded-md p-3">
+                <InrIcon class="h-6 w-6 text-red-600" />
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>                  
@@ -284,19 +283,31 @@
                       {{ formatAccountType(customer.account_type) }}
                     </span>
                   </div>
-                  <div class="flex space-x-2">
-                    <router-link
+                  <div class="flex space-x-2">                    <router-link
                       :to="`/banker/customer/${customer.id}`"
                       class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:scale-105"
                     >
                       View Details
                     </router-link>
                     <button
+                      @click="openEditModal(customer)"
+                      class="inline-flex items-center px-3 py-2 border border-blue-600 text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                    >
+                      <Edit class="h-4 w-4 mr-1" />
+                      Edit
+                    </button><button
                       @click="openDepositModal(customer)"
                       class="inline-flex items-center px-3 py-2 border border-green-600 text-sm leading-4 font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
                     >
-                      <DollarSign class="h-4 w-4 mr-1" />
+                      <InrIcon class="h-4 w-4 mr-1" />
                       Deposit
+                    </button>
+                    <button
+                      @click="openActionModal(customer)"
+                      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200"
+                    >
+                      <MoreVertical class="h-4 w-4 mr-1" />
+                      Actions
                     </button>
                   </div>
                 </div>
@@ -422,66 +433,71 @@
       
       <!-- Deposit Modal -->
       <div v-if="showDepositModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl relative">
-          <button
-            @click="showDepositModal = false"
-            class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          >
-            <X class="h-5 w-5" />
-          </button>
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Make Deposit</h3>
+            <button 
+              @click="showDepositModal = false" 
+              class="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <X class="h-6 w-6" />
+            </button>
+          </div>
           
-          <h3 class="text-lg font-medium text-gray-900 mb-4">
-            Make Deposit for {{ selectedCustomer ? selectedCustomer.name : 'Customer' }}
-          </h3>
-          
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-            <div class="mt-1 relative rounded-md shadow-sm">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span class="text-gray-500 sm:text-sm">₹</span>
-              </div>
-              <input
-                type="number"
-                v-model="depositAmount"
-                min="1"
-                step="0.01"
-                class="focus:ring-primary focus:border-primary block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                placeholder="0.00"
-              />
-              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span class="text-gray-500 sm:text-sm">INR</span>
+          <div class="space-y-4">
+            <div class="bg-gray-50 rounded-md p-3">
+              <h4 class="font-medium text-gray-900">{{ selectedCustomer?.name }}</h4>
+              <p class="text-sm text-gray-500">Current Balance: {{ formatCurrency(selectedCustomer?.balance) }}</p>
+            </div>
+            
+            <div>
+              <label for="amount" class="block text-sm font-medium text-gray-700">Amount (₹)</label>
+              <div class="mt-1 relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500 sm:text-sm">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="amount"
+                  id="amount"
+                  v-model="depositAmount"
+                  class="focus:ring-primary focus:border-primary block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
               </div>
             </div>
-            <p class="mt-1 text-sm text-gray-500">
-              Enter the amount to deposit into the customer's account.
-            </p>
+            
+            <div>
+              <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                id="description"
+                name="description"
+                rows="3"
+                v-model="depositDescription"
+                class="mt-1 shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border border-gray-300 rounded-md"
+                placeholder="Add a description for this transaction..."
+              ></textarea>
+            </div>
           </div>
           
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              v-model="depositDescription"
-              rows="3"
-              class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-              placeholder="Add details about this deposit"
-            ></textarea>
-          </div>
-          
-          <div class="flex justify-end">
+          <div class="mt-5 sm:mt-6 flex space-x-3">
             <button
+              type="button"
               @click="showDepositModal = false"
-              class="mr-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              class="flex-1 inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:text-sm"
+              :disabled="depositLoading"
             >
               Cancel
             </button>
             <button
+              type="button"
               @click="makeDeposit"
-              :disabled="depositLoading || !depositAmount || depositAmount <= 0"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-              :class="{ 'opacity-50 cursor-not-allowed': depositLoading || !depositAmount || depositAmount <= 0 }"
+              class="flex-1 inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:text-sm"
+              :disabled="depositLoading"
             >
-              <Loader2 v-if="depositLoading" class="h-4 w-4 mr-2 animate-spin" />
-              <Check v-else class="h-4 w-4 mr-2" />
+              <Loader2 v-if="depositLoading" class="h-4 w-4 animate-spin mr-2" />
               Make Deposit
             </button>
           </div>
@@ -490,16 +506,33 @@
       
       <!-- Export Report Modal -->
       <ExportReportModal
-        v-model="showExportModal"
-        :transactions="transactions"
+        :show="showExportModal"
+        @close="showExportModal = false"
         @export="handleExportReport"
       />
       
       <!-- Transaction Approval Modal -->
       <TransactionApprovalModal
-        v-model="showApprovalModal"
+        :show="showApprovalModal"
         :transaction="selectedTransaction"
+        @close="showApprovalModal = false"
         @transactionUpdated="handleTransactionUpdate"
+      />
+      
+      <!-- Customer Action Modal -->
+      <CustomerActionModal
+        :show="showActionModal"
+        :customer="selectedCustomer"
+        @close="showActionModal = false"
+        @customer-updated="handleCustomerUpdate"
+      />
+      
+      <!-- Customer Edit Modal -->
+      <CustomerEditModal
+        :show="showEditModal"
+        :customer="selectedCustomer"
+        @close="showEditModal = false"
+        @customer-updated="handleCustomerUpdate"
       />
     </template>
   </div>
@@ -530,8 +563,11 @@ import {
   RefreshCw,
   ArrowDownLeft,
   Lock,
-  Ban
+  Ban,
+  MoreVertical,
+  Edit
 } from 'lucide-vue-next';
+import InrIcon from '../components/InrIcon.vue';
 import api, { bankerService } from '../services/api';
 import { useRouter } from 'vue-router';
 import TransactionChart from '../components/TransactionChart.vue';
@@ -542,6 +578,8 @@ import TransactionFilters from '../components/TransactionFilters.vue';
 import ExportReportModal from '../components/ExportReportModal.vue';
 import TransactionApprovalModal from '../components/TransactionApprovalModal.vue';
 import VirtualCardManagement from '../components/VirtualCardManagement.vue';
+import CustomerActionModal from '../components/CustomerActionModal.vue';
+import CustomerEditModal from '../components/CustomerEditModal.vue';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -582,6 +620,8 @@ const transactionFilters = ref({
 const showDepositModal = ref(false);
 const showExportModal = ref(false);
 const showApprovalModal = ref(false);
+const showActionModal = ref(false);
+const showEditModal = ref(false);
 const selectedTransaction = ref(null);
 
 // Deposit modal state
@@ -879,6 +919,18 @@ const openDepositModal = (customer) => {
   showDepositModal.value = true;
 };
 
+// Open action modal for a customer
+const openActionModal = (customer) => {
+  selectedCustomer.value = customer;
+  showActionModal.value = true;
+};
+
+// Open edit modal for a customer
+const openEditModal = (customer) => {
+  selectedCustomer.value = customer;
+  showEditModal.value = true;
+};
+
 // Make deposit for a customer
 const makeDeposit = async () => {
   if (!selectedCustomer.value || !depositAmount.value || depositAmount.value <= 0) {
@@ -1076,6 +1128,35 @@ const formatStatus = (status) => {
   }
 };
 
+// Handle customer update from action or edit modal
+const handleCustomerUpdate = async (updatedCustomer) => {
+  try {
+    const index = customers.value.findIndex(c => c.id === updatedCustomer.id);
+    if (index !== -1) {
+      // Update the customer in the local state
+      customers.value[index] = { ...customers.value[index], ...updatedCustomer };
+      
+      // Display appropriate message based on the action
+      if (updatedCustomer.status === 'frozen') {
+        toast.success(`${updatedCustomer.name}'s account has been frozen`);
+      } else if (updatedCustomer.status === 'active') {
+        toast.success(`${updatedCustomer.name}'s account has been unfrozen/activated`);
+      } else if (updatedCustomer.status === 'inactive') {
+        toast.success(`${updatedCustomer.name}'s account has been deactivated`);
+      } else {
+        toast.success(`${updatedCustomer.name}'s information has been updated`);
+      }
+    } else if (updatedCustomer.deleted) {
+      // Remove customer from the list if deleted
+      customers.value = customers.value.filter(c => c.id !== updatedCustomer.id);
+      toast.success(`${updatedCustomer.name}'s account has been deleted`);
+    }
+  } catch (error) {
+    console.error('Error updating customer information:', error);
+    toast.error('Failed to update customer information');
+  }
+};
+
 // Computed properties
 const filteredCustomers = computed(() => {
   let filtered = customers.value;
@@ -1252,8 +1333,8 @@ const formatAccountType = (type) => {
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 /* Animation classes */

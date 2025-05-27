@@ -56,19 +56,54 @@ const checkUserStatus = asyncHandler(async (req, res, next) => {
   let params;
   
   if (req.user.role === 'customer') {
-    query = 'SELECT * FROM customers WHERE id = $1 AND status = $2';
-    params = [req.user.id, 'active'];
+    // For customers, we want to get the account regardless of status
+    // so we can provide appropriate messages
+    query = 'SELECT * FROM customers WHERE id = $1';
+    params = [req.user.id];
+    
+    const results = await pool.query(query, params);
+    
+    if (results.rows.length === 0) {
+      throw new ApiError(404, 'Account doesn\'t exist');
+    }
+    
+    const customer = results.rows[0];    // Normalize customer status for case-insensitive comparison
+    const normalizedStatus = customer.status ? customer.status.toLowerCase() : '';
+    
+    // Check customer status
+    if (normalizedStatus === 'inactive') {
+      throw new ApiError(403, 'Your account is deactivated. Please contact bank support.');
+    } else if (normalizedStatus === 'suspended') {
+      // For suspended (frozen in UI) accounts, we allow viewing but not transactions
+      // Check if this is a transaction-related endpoint
+      const transactionEndpoints = [
+        '/transfer', 
+        '/withdraw', 
+        '/deposit', 
+        '/transactions/create'
+      ];
+      
+      const isTransactionEndpoint = transactionEndpoints.some(endpoint => 
+        req.path.includes(endpoint)
+      );
+      
+      if (isTransactionEndpoint) {
+        throw new ApiError(403, 'Your account is frozen. Transactions are not allowed. Please contact bank support.');
+      }
+    } else if (normalizedStatus !== 'active') {
+      throw new ApiError(403, 'Your account status is invalid. Please contact bank support.');
+    }
   } else if (req.user.role === 'banker' || req.user.role === 'admin') {
     query = 'SELECT * FROM bankers WHERE id = $1 AND status = $2';
     params = [req.user.id, 'active'];
+    
+    const results = await pool.query(query, params);
+    
+    if (results.rows.length === 0) {
+      throw new ApiError(403, 'Your banker account is inactive or doesn\'t exist');
+    }
   } else {
     throw new ApiError(403, 'Invalid user role');
-  }
-  
-  const results = await pool.query(query, params);
-  
-  if (results.rows.length === 0) {
-    throw new ApiError(403, 'Account is inactive or doesn\'t exist');
   }
   
   next();

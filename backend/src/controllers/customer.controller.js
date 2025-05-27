@@ -115,6 +115,14 @@ const createTransaction = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Amount must be greater than zero');
   }
   
+  // Check customer status before allowing transaction
+  const customer = await CustomerModel.findById(customerId);
+  if (customer.status === 'frozen') {
+    throw new ApiError(403, 'Your account is frozen. Transactions are not allowed. Please contact bank support.');
+  } else if (customer.status === 'inactive') {
+    throw new ApiError(403, 'Your account is inactive. Please contact bank support.');
+  }
+  
   // Standardize transaction type names
   if (type === 'withdraw') {
     type = 'withdrawal';
@@ -198,9 +206,27 @@ const transferMoney = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Valid amount is required');
   }
   
+  // Check sender's account status before allowing transfer
+  const sender = await CustomerModel.findById(senderId);
+  if (sender.status === 'frozen') {
+    throw new ApiError(403, 'Your account is frozen. Transfers are not allowed. Please contact bank support.');
+  } else if (sender.status === 'inactive') {
+    throw new ApiError(403, 'Your account is inactive. Please contact bank support.');
+  }
+  
   // Don't allow transfers to self - convert both IDs to strings for comparison
   if (String(recipientId) === String(senderId)) {
     throw new ApiError(400, 'Cannot transfer money to your own account');
+  }
+  
+  // Check recipient's account status
+  const recipient = await CustomerModel.findById(recipientId);
+  if (!recipient) {
+    throw new ApiError(404, 'Recipient account not found');
+  }
+  
+  if (recipient.status === 'inactive') {
+    throw new ApiError(403, 'Recipient account is inactive. Transfers to this account are not allowed.');
   }
     try {
     // Process the transfer

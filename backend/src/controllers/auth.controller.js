@@ -77,13 +77,19 @@ const loginCustomer = asyncHandler(async (req, res) => {
     
     console.log('Finding customer by email:', email);
     // Find customer by email
-    const customer = await CustomerModel.findByEmail(email);
-    console.log('Customer found:', { id: customer.id, status: customer.status });
+    const customer = await CustomerModel.findByEmail(email);    console.log('Customer found:', { id: customer.id, status: customer.status });
     
-    // Check if customer is active
-    if (customer.status !== 'active') {
-      console.log('Customer account not active:', customer.status);
-      throw new ApiError(403, 'Your account is not active. Please contact support.');
+    // Check customer status
+    if (customer.status === 'inactive') {
+      console.log('Customer account is deactivated:', customer.status);
+      throw new ApiError(403, 'Your account is deactivated. Please contact bank support.');
+    } else if (customer.status === 'frozen') {
+      console.log('Customer account is frozen:', customer.status);
+      // Allow login for frozen accounts, but they won't be able to make transactions
+      // This allows customers to see their account but not perform transactions
+    } else if (customer.status !== 'active') {
+      console.log('Customer account has invalid status:', customer.status);
+      throw new ApiError(403, 'Your account status is invalid. Please contact bank support.');
     }
     
     // Check password

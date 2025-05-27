@@ -11,7 +11,9 @@ const {
   createCustomerDeposit,
   approveTransaction,
   rejectTransaction,
-  exportTransactions
+  exportTransactions,
+  updateCustomerStatus,
+  deleteCustomer
 } = require('../controllers/banker.controller');
 const { authenticate, authorize, checkUserStatus } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validation.middleware');
@@ -47,6 +49,8 @@ router.get('/customers', authenticate, authorize('banker', 'admin'), getAllCusto
 router.get('/customers/:id', authenticate, authorize('banker', 'admin'), getCustomerById);
 router.get('/customers/:id/transactions', getCustomerTransactions);
 router.post('/customers/:id/deposit', authenticate, authorize('banker', 'admin'), createCustomerDeposit);
+router.patch('/customers/:id/status', authenticate, authorize('banker', 'admin'), updateCustomerStatus);
+router.delete('/customers/:id', authenticate, authorize('banker', 'admin'), deleteCustomer);
 router.get('/transactions/export', exportTransactions);
 router.get('/transactions', getAllTransactions);
 router.post('/transactions/:id/approve', authenticate, authorize('banker', 'admin'), approveTransaction);

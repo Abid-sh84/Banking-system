@@ -29,8 +29,7 @@ class CustomerModel {  // Create a new customer
       const customerId = 'CUST' + Math.floor(1000000000 + Math.random() * 9000000000).toString();
         // Get account type from customer data or default to savings
       const accountType = customerData.accountType || 'savings';
-      
-            // Insert customer with initial balance of 0
+        // Insert customer with initial balance of 0 - using lowercase status to match DB constraint
       const result = await query(
         'INSERT INTO customers (name, email, password, address, phone, account_number, customer_id, balance, status, account_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
         [name, email, hashedPassword, address, phone, accountNumber, customerId, 0, 'active', accountType]
@@ -439,14 +438,92 @@ class CustomerModel {  // Create a new customer
         error: error.message,
         stack: error.stack
       });
-      
-      // Handle specific database errors
+        // Handle specific database errors
       if (error.code) {
         console.error(`Database error code: ${error.code}, ${error.detail || ''}`);
       }
       
       if (error instanceof ApiError) throw error;
       throw new ApiError(500, `Transfer failed: ${error.message}`);
+    } finally {
+      client.release();
+    }
+  }
+  // Update customer status (active, inactive, suspended)
+  static async updateStatus(id, status) {
+    try {
+      // Convert status to lowercase to ensure consistency
+      const normalizedStatus = status.toLowerCase();
+      
+      // Map frontend 'frozen' to database 'suspended'
+      let dbStatus = normalizedStatus;
+      if (normalizedStatus === 'frozen') {
+        dbStatus = 'suspended';
+      }
+      
+      // Validate status against database allowed values
+      if (!['active', 'inactive', 'suspended'].includes(dbStatus)) {
+        throw new ApiError(400, 'Invalid status value');
+      }
+      
+      const result = await query(
+        'UPDATE customers SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+        [dbStatus, id]
+      );
+      
+      if (result.rowCount === 0) {
+        throw new ApiError(404, 'Customer not found');
+      }
+      
+      return result.rows[0];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, `Error updating customer status: ${error.message}`);
+    }
+  }
+  
+  // Delete customer account
+  static async delete(id) {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // First check if customer exists
+      const checkResult = await client.query(
+        'SELECT id FROM customers WHERE id = $1',
+        [id]
+      );
+      
+      if (checkResult.rows.length === 0) {
+        throw new ApiError(404, 'Customer not found');
+      }
+      
+      // Delete customer's transactions
+      await client.query(
+        'DELETE FROM transactions WHERE customer_id = $1 OR sender_id = $1 OR receiver_id = $1',
+        [id]
+      );
+      
+      // Delete customer's virtual cards if they exist
+      await client.query(
+        'DELETE FROM virtual_cards WHERE customer_id = $1',
+        [id]
+      );
+      
+      // Finally delete the customer
+      await client.query(
+        'DELETE FROM customers WHERE id = $1',
+        [id]
+      );
+      
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error deleting customer:', error);
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, `Error deleting customer: ${error.message}`);
     } finally {
       client.release();
     }
