@@ -1,6 +1,7 @@
 const { pool, query } = require('../config/db.config');
 const bcrypt = require('bcrypt');
 const { ApiError } = require('../utils/error.utils');
+const emailService = require('../utils/email.utils');
 
 class CustomerModel {  // Create a new customer
   static async create(customerData) {
@@ -347,15 +348,83 @@ class CustomerModel {  // Create a new customer
         'INSERT INTO transactions (customer_id, type, amount, description, sender_id, receiver_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [recipientIdNum, 'received', amount, description || 'Transfer from another account', senderIdNum, recipientIdNum, 'completed']
       );
-      
-      // Commit transaction
+        // Commit transaction
       await client.query('COMMIT');
-        // Get updated sender balance
+          // Get updated sender and recipient details for email notifications
       const updatedSenderResult = await client.query(
-        'SELECT balance FROM customers WHERE id = $1',
+        'SELECT id, name, email, balance FROM customers WHERE id = $1',
         [senderIdNum]
       );
-        return {
+      
+      const updatedRecipientResult = await client.query(
+        'SELECT id, name, email, balance FROM customers WHERE id = $1',
+        [recipientIdNum]
+      );
+      
+      // Log sender and recipient info for debugging
+      console.log('Sender details:', {
+        id: updatedSenderResult.rows[0]?.id,
+        name: updatedSenderResult.rows[0]?.name,
+        emailPresent: !!updatedSenderResult.rows[0]?.email,
+        balance: updatedSenderResult.rows[0]?.balance
+      });
+      
+      console.log('Recipient details:', {
+        id: updatedRecipientResult.rows[0]?.id,
+        name: updatedRecipientResult.rows[0]?.name,
+        emailPresent: !!updatedRecipientResult.rows[0]?.email,
+        balance: updatedRecipientResult.rows[0]?.balance
+      });
+      
+      // Send debit notification to sender
+      try {
+        if (updatedSenderResult.rows[0]?.email) {
+          console.log(`Sending debit notification to ${updatedSenderResult.rows[0].email}`);
+          await emailService.sendTransactionNotification({
+            to: updatedSenderResult.rows[0].email,
+            subject: 'Debit Alert - Money Transfer',
+            transactionDetails: {
+              type: 'transfer',
+              amount,
+              description: description || 'Transfer to another account',
+              balance: parseFloat(updatedSenderResult.rows[0].balance),
+              transactionId: senderTxResult.rows[0].id
+            }
+          });
+          console.log('Debit notification sent successfully');
+        } else {
+          console.warn('Sender email not found, skipping debit notification');
+        }
+      } catch (emailError) {
+        console.error('Failed to send debit notification:', emailError.message);
+        // Continue execution despite email failure
+      }
+      
+      // Send credit notification to recipient
+      try {
+        if (updatedRecipientResult.rows[0]?.email) {
+          console.log(`Sending credit notification to ${updatedRecipientResult.rows[0].email}`);
+          await emailService.sendTransactionNotification({
+            to: updatedRecipientResult.rows[0].email,
+            subject: 'Credit Alert - Money Received',
+            transactionDetails: {
+              type: 'received',
+              amount,
+              description: description || 'Transfer from another account',
+              balance: parseFloat(updatedRecipientResult.rows[0].balance),
+              transactionId: senderTxResult.rows[0].id
+            }
+          });
+          console.log('Credit notification sent successfully');
+        } else {
+          console.warn('Recipient email not found, skipping credit notification');
+        }
+      } catch (emailError) {
+        console.error('Failed to send credit notification:', emailError.message);
+        // Continue execution despite email failure
+      }
+      
+      return {
         success: true,
         transactionId: senderTxResult.rows[0].id,
         balance: parseFloat(updatedSenderResult.rows[0].balance)

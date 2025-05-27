@@ -28,11 +28,27 @@ export const useAuthStore = defineStore('auth', {
   },
   
   actions: {
-    async registerCustomer(userData) {
+  async registerCustomer(userData) {
       this.loading = true;
       
       try {
+        // Step 1: Register and get OTP
         const response = await authService.registerCustomer(userData);
+        return response;
+      } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    async verifyRegistrationOTP(email, otp) {
+      this.loading = true;
+      
+      try {
+        // Step 2: Verify OTP and create account
+        const response = await authService.verifyOTP({ email, otp });
         
         const { token, customer } = response.data.data;
         
@@ -46,10 +62,19 @@ export const useAuthStore = defineStore('auth', {
         
         return response;
       } catch (error) {
-        console.error('Registration error:', error);
+        console.error('OTP verification error:', error);
         throw error;
       } finally {
         this.loading = false;
+      }
+    },
+    
+    async resendOTP(email) {
+      try {
+        return await authService.resendOTP({ email });
+      } catch (error) {
+        console.error('Resend OTP error:', error);
+        throw error;
       }
     },
       async customerLogin(email, password) {

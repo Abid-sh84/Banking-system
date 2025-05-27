@@ -141,6 +141,8 @@ api.interceptors.response.use(
 // Auth services - using consistent paths with the Vite proxy configuration
 export const authService = {
   registerCustomer: (data) => api.post('/auth/register', data),
+  verifyOTP: (data) => api.post('/auth/verify-otp', data),
+  resendOTP: (data) => api.post('/auth/resend-otp', data),
   
   loginCustomer: (data) => {
     console.log('Attempting customer login with data:', { email: data.email });

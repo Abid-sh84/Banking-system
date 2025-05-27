@@ -7,6 +7,9 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Apply email configuration fix 
+require('./utils/email-fix');
+
 const { pool, testConnection } = require('./config/db.config');
 
 // Initialize express app
@@ -66,6 +69,7 @@ const customerRoutes = require('./routes/customer.routes');
 const bankerRoutes = require('./routes/banker.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const cardRoutes = require('./routes/card.routes');
+const testRoutes = require('./routes/test.routes');
 
 // Middleware to log all incoming requests
 app.use((req, res, next) => {
@@ -84,6 +88,13 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/transactions', transactionRoutes); // Duplicate without /api prefix
 app.use('/api/cards', cardRoutes);
 app.use('/cards', cardRoutes); // Duplicate without /api prefix
+
+// Test routes - only enabled in development
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test', testRoutes);
+  app.use('/test', testRoutes); // Duplicate without /api prefix
+  console.log('Test routes enabled in development mode');
+}
 
 // Error handling middleware with improved logging
 app.use((err, req, res, next) => {
@@ -137,12 +148,15 @@ app.listen(PORT, async () => {
     if (!connected) {
       throw new Error('Failed to connect to database after multiple attempts');
     }
-    
-    // Run database update if connection is successful
+      // Run database update if connection is successful
     try {
       // Only run database updates if needed
       const updateDatabase = require('./config/db.update');
       await updateDatabase();
+      
+      // Initialize OTP table
+      const { createOtpTable } = require('./config/db.otp');
+      await createOtpTable();
       
       console.log('Database schema updated successfully');
     } catch (error) {

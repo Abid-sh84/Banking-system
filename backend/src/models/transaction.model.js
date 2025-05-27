@@ -1,6 +1,7 @@
 const { pool, query } = require('../config/db.config');
 const { ApiError } = require('../utils/error.utils');
 const CustomerModel = require('./customer.model');
+const emailService = require('../utils/email.utils');
 
 class TransactionModel {
   // Create a new transaction
@@ -51,6 +52,46 @@ class TransactionModel {
           );
           
           await client.query('COMMIT');
+            // Get sender and receiver details for email notifications
+          const senderDetails = await client.query(
+            'SELECT name, email, balance FROM customers WHERE id = $1',
+            [customer_id]
+          );
+          
+          const receiverDetails = await client.query(
+            'SELECT name, email, balance FROM customers WHERE id = $1',
+            [receiver_id]
+          );
+          
+          // Send debit notification to sender
+          if (senderDetails.rows[0]?.email) {
+            emailService.sendTransactionNotification({
+              to: senderDetails.rows[0].email,
+              subject: 'Debit Alert - Money Transfer',
+              transactionDetails: {
+                type,
+                amount,
+                description,
+                balance: senderDetails.rows[0].balance,
+                transactionId: result.rows[0].id
+              }
+            });
+          }
+          
+          // Send credit notification to receiver
+          if (receiverDetails.rows[0]?.email) {
+            emailService.sendTransactionNotification({
+              to: receiverDetails.rows[0].email,
+              subject: 'Credit Alert - Money Received',
+              transactionDetails: {
+                type: 'received',
+                amount,
+                description: `Received from transfer: ${description}`,
+                balance: receiverDetails.rows[0].balance,
+                transactionId: result.rows[0].id
+              }
+            });
+          }
           
           return {
             id: result.rows[0].id,
@@ -68,8 +109,43 @@ class TransactionModel {
             'INSERT INTO transactions (customer_id, amount, type, description, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, customer_id, amount, type, description, status, created_at',
             [customer_id, amount, type, description, 'completed']
           );
+            await client.query('COMMIT');
+            // Get customer details for email notification
+          const customerDetails = await client.query(
+            'SELECT name, email, balance FROM customers WHERE id = $1',
+            [customer_id]
+          );
           
-          await client.query('COMMIT');
+          console.log('Customer details for deposit notification:', {
+            id: customer_id,
+            name: customerDetails.rows[0]?.name,
+            emailPresent: !!customerDetails.rows[0]?.email,
+            balance: customerDetails.rows[0]?.balance
+          });
+          
+          // Send credit notification to customer
+          try {
+            if (customerDetails.rows[0]?.email) {
+              console.log(`Sending deposit notification to ${customerDetails.rows[0].email}`);
+              await emailService.sendTransactionNotification({
+                to: customerDetails.rows[0].email,
+                subject: 'Credit Alert - Deposit',
+                transactionDetails: {
+                  type,
+                  amount,
+                  description,
+                  balance: customerDetails.rows[0].balance,
+                  transactionId: result.rows[0].id
+                }
+              });
+              console.log('Deposit notification sent successfully');
+            } else {
+              console.warn('Customer email not found, skipping deposit notification');
+            }
+          } catch (emailError) {
+            console.error('Failed to send deposit notification:', emailError.message);
+            // Continue execution despite email failure
+          }
           
           return result.rows[0] || {
             id: result.rows[0].id,
@@ -91,7 +167,42 @@ class TransactionModel {
           // Get the transaction with created_at from the database
           const createdTransaction = await client.query(
             'SELECT id, customer_id, amount, type, description, status, created_at FROM transactions WHERE id = $1',
-            [result.rows[0].id]          );
+            [result.rows[0].id]          );          // Get customer details for email notification
+          const customerDetails = await client.query(
+            'SELECT name, email, balance FROM customers WHERE id = $1',
+            [customer_id]
+          );
+          
+          console.log('Customer details for withdrawal notification:', {
+            id: customer_id,
+            name: customerDetails.rows[0]?.name,
+            emailPresent: !!customerDetails.rows[0]?.email,
+            balance: customerDetails.rows[0]?.balance
+          });
+          
+          // Send debit notification to customer
+          try {
+            if (customerDetails.rows[0]?.email) {
+              console.log(`Sending withdrawal notification to ${customerDetails.rows[0].email}`);
+              await emailService.sendTransactionNotification({
+                to: customerDetails.rows[0].email,
+                subject: 'Debit Alert - Withdrawal',
+                transactionDetails: {
+                  type,
+                  amount,
+                  description,
+                  balance: customerDetails.rows[0].balance,
+                  transactionId: result.rows[0].id
+                }
+              });
+              console.log('Withdrawal notification sent successfully');
+            } else {
+              console.warn('Customer email not found, skipping withdrawal notification');
+            }
+          } catch (emailError) {
+            console.error('Failed to send withdrawal notification:', emailError.message);
+            // Continue execution despite email failure
+          }
           
           return createdTransaction.rows[0] || {
             id: result.rows[0].id,

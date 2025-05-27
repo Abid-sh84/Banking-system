@@ -54,75 +54,79 @@
         </div>
       </div>
     </div>    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-20 form-container animate-slideInUp">
-      <div class="bg-white py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10 transition-all duration-300 hover:shadow-xl border border-gray-100">
-        <!-- Progress steps -->
-        <div class="flex justify-between items-center mb-8">
+      <div class="bg-white py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10 transition-all duration-300 hover:shadow-xl border border-gray-100">        <!-- Progress steps -->
+        <div class="flex justify-between items-center mb-8">          <div class="flex flex-col items-center">
+            <div class="h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium" :class="!showOtpVerification ? 'bg-primary text-white' : 'bg-green-500 text-white'">
+              <span v-if="!showOtpVerification">1</span>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <span class="mt-1 text-xs" :class="!showOtpVerification ? 'text-primary font-medium' : 'text-green-500'">Details</span>
+          </div>          <div class="flex-1 mx-2 h-1 bg-gray-200">
+            <div class="h-1" :class="showOtpVerification ? 'bg-green-500 w-full' : 'bg-primary w-0'"></div>
+          </div>
           <div class="flex flex-col items-center">
-            <div class="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">1</div>
-            <span class="mt-1 text-xs text-primary font-medium">Details</span>
-          </div>
-          <div class="flex-1 mx-2 h-1 bg-gray-200">
-            <div class="h-1 bg-primary" style="width: 0%"></div>
-          </div>
-          <div class="flex flex-col items-center">
-            <div class="h-8 w-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-medium">2</div>
-            <span class="mt-1 text-xs text-gray-500">Verification</span>
-          </div>
-          <div class="flex-1 mx-2 h-1 bg-gray-200"></div>
+            <div class="h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium" :class="!showOtpVerification ? 'bg-gray-200 text-gray-500' : 'bg-primary text-white'">2</div>
+            <span class="mt-1 text-xs" :class="!showOtpVerification ? 'text-gray-500' : 'text-primary font-medium'">Verification</span>
+          </div>          <div class="flex-1 mx-2 h-1 bg-gray-200"></div>
           <div class="flex flex-col items-center">
             <div class="h-8 w-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-medium">3</div>
             <span class="mt-1 text-xs text-gray-500">Done</span>
           </div>
         </div>
-        <form class="space-y-6" @submit.prevent="handleSubmit">          <!-- Name -->
-          <div>
-            <label for="name" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-              </svg>
-              Full Name
-            </label>
-            <div class="mt-1 relative rounded-md shadow-sm">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span class="text-gray-500 sm:text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </span>
+        <form class="space-y-6" @submit.prevent="handleSubmit">
+          <!-- Registration Form Fields - Only show when not showing OTP verification -->
+          <div v-if="!showOtpVerification">
+            <!-- Name -->
+            <div>
+              <label for="name" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                </svg>
+                Full Name
+              </label>
+              <div class="mt-1 relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500 sm:text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </span>
+                </div>
+                <input
+                  id="name"
+                  v-model="formData.name"
+                  name="name"
+                  type="text"
+                  autocomplete="name"
+                  required
+                  placeholder="Enter your full legal name"
+                  class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all duration-200"
+                  :class="{ 'border-red-500': errors.name }"
+                />
+                <transition name="fade">
+                  <div v-if="formData.name && formData.name.length >= 2" class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-green-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </transition>
               </div>
-              <input
-                id="name"
-                v-model="formData.name"
-                name="name"
-                type="text"
-                autocomplete="name"
-                required
-                placeholder="Enter your full legal name"
-                class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all duration-200"
-                :class="{ 'border-red-500': errors.name }"
-              />
               <transition name="fade">
-                <div v-if="formData.name && formData.name.length >= 2" class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-green-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                <div v-if="errors.name" class="mt-2 text-sm text-red-600 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
+                  {{ errors.name }}
                 </div>
               </transition>
+              <p class="mt-1 text-xs text-gray-500">Please enter the name as it appears on your ID documents</p>
             </div>
-            <transition name="fade">
-              <div v-if="errors.name" class="mt-2 text-sm text-red-600 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                {{ errors.name }}
-              </div>
-            </transition>
-            <p class="mt-1 text-xs text-gray-500">Please enter the name as it appears on your ID documents</p>
-          </div>
 
           <!-- Email -->
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label for="email" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                 <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
@@ -167,7 +171,7 @@
             <p class="mt-1 text-xs text-gray-500">We'll send account statements and notifications to this email</p>
           </div>          <!-- Password -->
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label for="password" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
               </svg>
@@ -261,7 +265,7 @@
             </div>
           </div>          <!-- Address -->
           <div>
-            <label for="address" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label for="address" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
               </svg>
@@ -306,7 +310,7 @@
           
           <!-- Phone -->
           <div>
-            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label for="phone" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
               </svg>
@@ -360,10 +364,9 @@
                 </svg>
                 <p class="text-xs text-green-700">Secure & confidential</p>
               </div>
-            </div>
-          </div>          <!-- Account Type -->
+            </div>          </div>          <!-- Account Type -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <label class="text-sm font-medium text-gray-700 mb-1 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
                 <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" />
@@ -482,13 +485,97 @@
                        formData.accountType === 'current' ? 'Ideal for businesses with high transaction volume and check writing needs.' : 
                        'Best for long-term savings with higher interest rates and fixed maturity dates.' }}
                   </p>
+                </div>              </div>
+            </div>
+          </div>
+          </div>          <!-- OTP Verification Section - Show when OTP verification is active -->
+          <div v-if="showOtpVerification" class="space-y-6">
+            <div class="bg-blue-50 p-4 rounded-md">
+              <div class="flex items-start">
+                <div class="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-blue-800">Verification Required</h3>
+                  <div class="mt-2 text-sm text-blue-700">
+                    <p>We've sent a verification code to <strong>{{ registeredEmail }}</strong>. Please check your inbox and enter the 6-digit code below to verify your email address.</p>
+                  </div>
                 </div>
               </div>
+            </div>
+            
+            <!-- OTP Input -->
+            <div>
+              <label for="otp" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                </svg>
+                Verification Code
+              </label>
+              <div class="mt-1 relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500 sm:text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </span>
+                </div>
+                <input
+                  id="otp"
+                  v-model="otp"
+                  name="otp"
+                  type="text"
+                  autocomplete="one-time-code"
+                  required
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="6"
+                  placeholder="Enter 6-digit verification code"
+                  class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all duration-200 text-center tracking-widest font-mono"
+                />
+              </div>
+              <p class="mt-2 text-xs text-gray-500 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Code expires in 15 minutes
+              </p>
+            </div>
+            
+            <!-- Resend OTP Link -->
+            <div class="text-sm text-center">
+              <p class="text-gray-600">
+                Didn't receive the code?
+                <button 
+                  type="button" 
+                  @click="resendOtp"
+                  class="text-primary hover:text-primary-dark transition-colors duration-200 font-medium focus:outline-none"
+                  :disabled="loading"
+                >
+                  Resend code
+                </button>
+              </p>
+            </div>
+            
+            <!-- Back Button -->
+            <div class="text-center mt-4">
+              <button
+                type="button"
+                @click="showOtpVerification = false; otpError = ''"
+                class="text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 flex items-center mx-auto"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to registration form
+              </button>
             </div>
           </div>
 
           <!-- Terms and Conditions -->
-          <div class="relative flex items-start">
+          <div v-if="!showOtpVerification" class="relative flex items-start">
             <div class="flex items-center h-5">
               <input
                 id="terms"
@@ -511,19 +598,18 @@
           </div>
 
           <!-- Submit Button -->
-          <div>
-            <button
+          <div>            <button
               type="submit"
               class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-light hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transform transition-all duration-200 hover:scale-105 relative overflow-hidden"
-              :disabled="loading || !acceptedTerms"
-              :class="{ 'opacity-70 cursor-not-allowed': loading || !acceptedTerms }"
+              :disabled="loading || (!showOtpVerification && !acceptedTerms) || (showOtpVerification && otp.length !== 6)"
+              :class="{ 'opacity-70 cursor-not-allowed': loading || (!showOtpVerification && !acceptedTerms) || (showOtpVerification && otp.length !== 6) }"
             >
               <span class="relative z-10 flex items-center">
                 <Loader2 v-if="loading" class="h-5 w-5 animate-spin mr-2" />
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {{ loading ? 'Creating Your Account...' : 'Create Your Secure Account' }}
+                {{ loading ? (showOtpVerification ? 'Verifying OTP...' : 'Sending OTP...') : (showOtpVerification ? 'Verify & Create Account' : 'Continue to Verification') }}
               </span>
               <div class="absolute top-0 right-full w-full h-full bg-white opacity-30 transform skew-x-12 transition-transform duration-700 ease-out group-hover:translate-x-full"></div>
             </button>
@@ -534,9 +620,8 @@
               Secured with bank-level encryption and protection
             </p>
           </div>
-          
-          <!-- Error Message -->
-          <div v-if="error" class="bg-red-50 p-4 rounded-md">
+            <!-- Error Messages -->
+          <div v-if="error && !showOtpVerification" class="bg-red-50 p-4 rounded-md">
             <div class="flex">
               <div class="flex-shrink-0">
                 <AlertTriangle class="h-5 w-5 text-red-400" />
@@ -548,10 +633,25 @@
               </div>
             </div>
           </div>
+          
+          <!-- OTP Error Message -->
+          <div v-if="otpError && showOtpVerification" class="bg-red-50 p-4 rounded-md">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <AlertTriangle class="h-5 w-5 text-red-400" />
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-red-700">
+                  {{ otpError }}
+                </p>
+              </div>
+            </div>
+          </div>
         </form>
       </div>
     </div>
   </div>
+  
 </template>
 
 <script setup>
@@ -662,6 +762,12 @@ const validateForm = () => {
   return isValid;
 };
 
+// State for OTP verification
+const showOtpVerification = ref(false);
+const otp = ref('');
+const otpError = ref('');
+const registeredEmail = ref('');
+
 const handleSubmit = async () => {
   if (!validateForm()) return;
   
@@ -669,14 +775,45 @@ const handleSubmit = async () => {
     loading.value = true;
     error.value = '';
     
-    await authStore.registerCustomer(formData);
-    
-    toast.success('Registration successful! You are now logged in.');
-    router.push('/customer/dashboard');
+    if (!showOtpVerification.value) {
+      // Step 1: Register and get OTP
+      const response = await authStore.registerCustomer(formData);
+      toast.success('OTP sent to your email.');
+      showOtpVerification.value = true;
+      registeredEmail.value = formData.email;
+    } else {
+      // Step 2: Verify OTP
+      await authStore.verifyRegistrationOTP(registeredEmail.value, otp.value);
+      toast.success('Registration successful! You are now logged in.');
+      router.push('/customer/dashboard');
+    }
   } catch (err) {
     console.error('Registration error:', err);
-    error.value = err.response?.data?.message || 'Registration failed. Please try again.';
-    toast.error('Registration failed');
+    if (showOtpVerification.value) {
+      otpError.value = err.response?.data?.message || 'Failed to verify OTP. Please try again.';
+      toast.error('OTP verification failed');
+    } else {
+      error.value = err.response?.data?.message || 'Registration failed. Please try again.';
+      toast.error('Registration failed');
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+const resendOtp = async () => {
+  if (!registeredEmail.value) return;
+  
+  try {
+    loading.value = true;
+    otpError.value = '';
+    
+    await authStore.resendOTP(registeredEmail.value);
+    toast.success('OTP resent to your email.');
+  } catch (err) {
+    console.error('Resend OTP error:', err);
+    otpError.value = err.response?.data?.message || 'Failed to resend OTP. Please try again.';
+    toast.error('OTP resend failed');
   } finally {
     loading.value = false;
   }

@@ -5,41 +5,56 @@ const { ApiError, asyncHandler } = require('../utils/error.utils');
 const bcrypt = require('bcrypt');
 const { pool } = require('../config/db.config');
 
-// Customer registration
+// Customer registration - Step 1: Send OTP
 const registerCustomer = asyncHandler(async (req, res) => {
   const { name, email, password, address, phone, accountType } = req.body;
   
-  const newCustomer = await CustomerModel.create({
-    name,
-    email,
-    password,
-    address,
-    phone,
-    accountType: accountType || 'savings' // Default to savings if not provided
-  });
+  // Check if email already exists in customers table
+  try {
+    const existingCustomer = await pool.query(
+      'SELECT * FROM customers WHERE email = $1',
+      [email]
+    );
+    
+    if (existingCustomer.rows.length > 0) {
+      throw new ApiError(409, 'Email already exists');
+    }
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(500, `Error checking customer: ${error.message}`);
+  }
   
-  // Generate token
-  const token = generateToken({
-    id: newCustomer.id,
-    role: 'customer'
-  });
+  // Import the OTP utils
+  const OTPService = require('../utils/otp.utils');
   
-  // Remove sensitive data
-  delete newCustomer.password;
+  // Generate OTP
+  const otp = OTPService.generateOTP();
   
-  // Set cookie
-  res.cookie('token', token, {
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: process.env.NODE_ENV === 'production'
-  });
+  // Hash password before storing it
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
   
-  res.status(201).json({
+  // Store user data and OTP in pending registration table
+  await OTPService.saveRegistrationOTP(
+    {
+      name,
+      email,
+      password: hashedPassword,
+      address,
+      phone,
+      accountType: accountType || 'savings'
+    },
+    otp
+  );
+  
+  // Send OTP via email
+  await OTPService.sendOTPEmail(email, name, otp);
+  
+  res.status(200).json({
     success: true,
-    message: 'Customer registered successfully',
+    message: 'OTP sent to your email. Please verify to complete registration.',
     data: {
-      customer: newCustomer,
-      token
+      email
     }
   });
 });
@@ -301,8 +316,102 @@ const refreshToken = asyncHandler(async (req, res) => {
   }
 });
 
+// Verify OTP for customer registration - Step 2: Create account after OTP verification
+const verifyRegistrationOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  
+  if (!email || !otp) {
+    throw new ApiError(400, 'Email and OTP are required');
+  }
+  
+  const OTPService = require('../utils/otp.utils');
+  
+  // Verify the OTP
+  const userData = await OTPService.verifyOTP(email, otp);
+  
+  // Create the customer account
+  const newCustomer = await CustomerModel.create({
+    name: userData.name,
+    email: userData.email,
+    password: userData.password, // Password is already hashed from the OTP service
+    address: userData.address,
+    phone: userData.phone,
+    accountType: userData.accountType
+  });
+  
+  // Generate token
+  const token = generateToken({
+    id: newCustomer.id,
+    role: 'customer'
+  });
+  
+  // Remove sensitive data
+  delete newCustomer.password;
+  
+  // Set cookie
+  res.cookie('token', token, {
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: process.env.NODE_ENV === 'production'
+  });
+  
+  // Delete the OTP record 
+  await OTPService.deleteOTPRecord(email);
+  
+  res.status(201).json({
+    success: true,
+    message: 'Account created successfully',
+    data: {
+      customer: newCustomer,
+      token
+    }
+  });
+});
+
+// Resend OTP for registration
+const resendRegistrationOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    throw new ApiError(400, 'Email is required');
+  }
+  
+  // Check if email exists in pending registration
+  const OTPService = require('../utils/otp.utils');
+  const pendingRegistration = await pool.query(
+    'SELECT * FROM registration_otp WHERE email = $1',
+    [email]
+  );
+  
+  if (pendingRegistration.rows.length === 0) {
+    throw new ApiError(404, 'No pending registration found for this email');
+  }
+  
+  // Generate new OTP
+  const otp = OTPService.generateOTP();
+  
+  // Update OTP in database
+  await pool.query(
+    'UPDATE registration_otp SET otp = $1, expires_at = $2, attempted_count = 0 WHERE email = $3',
+    [otp, new Date(Date.now() + 15 * 60000), email]
+  );
+  
+  // Send OTP via email
+  await OTPService.sendOTPEmail(email, pendingRegistration.rows[0].name, otp);
+  
+  res.status(200).json({
+    success: true,
+    message: 'OTP resent to your email',
+    data: {
+      email
+    }
+  });
+});
+
 module.exports = {
   registerCustomer,
+  verifyRegistrationOTP,
+  resendRegistrationOTP,
   loginCustomer,
   loginBanker,
   logout,
