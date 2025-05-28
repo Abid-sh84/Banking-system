@@ -68,6 +68,7 @@ const authRoutes = require('./routes/auth.routes');
 const customerRoutes = require('./routes/customer.routes');
 const bankerRoutes = require('./routes/banker.routes');
 const transactionRoutes = require('./routes/transaction.routes');
+const depositRoutes = require('./routes/deposit.routes');
 const cardRoutes = require('./routes/card.routes');
 const testRoutes = require('./routes/test.routes');
 
@@ -88,6 +89,8 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/transactions', transactionRoutes); // Duplicate without /api prefix
 app.use('/api/cards', cardRoutes);
 app.use('/cards', cardRoutes); // Duplicate without /api prefix
+app.use('/api/deposits', depositRoutes);
+app.use('/deposits', depositRoutes); // Duplicate without /api prefix
 
 // Test routes - only enabled in development
 if (process.env.NODE_ENV !== 'production') {

@@ -10,6 +10,7 @@ const {
   findRecipient,
   transferMoney
 } = require('../controllers/customer.controller');
+const { getCustomerCibilScore } = require('../controllers/cibil.controller');
 const { authenticate, authorize, checkUserStatus } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validation.middleware');
 
@@ -64,5 +65,6 @@ router.get('/transactions/:id', getTransactionById);
 router.post('/transactions', validateRequest(createTransactionSchema), createTransaction);
 router.get('/find-recipient', findRecipient);
 router.post('/transfer', validateRequest(transferSchema), transferMoney);
+router.get('/cibil-score', getCustomerCibilScore);
 
 module.exports = router;

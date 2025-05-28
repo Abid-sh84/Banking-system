@@ -51,8 +51,7 @@
                   </dt>
                   <dd>
                     <div class="flex items-center">
-                      <div class="text-lg font-medium text-gray-900">
-                        {{ customerStats.total }}
+                      <div class="text-lg font-medium text-gray-900">                          {{ calculatedCustomerStats.total }}
                       </div>
                       <div class="ml-2 flex items-center text-xs text-green-600">
                         <TrendingUp class="h-3 w-3 mr-0.5" />
@@ -84,7 +83,7 @@
                   <dd>
                     <div class="flex items-center">
                       <div class="text-lg font-medium text-gray-900">
-                        {{ formatCurrency(customerStats.totalDepositsToday) }}
+                        {{ formatCurrency(calculatedCustomerStats.totalDepositsToday) }}
                       </div>
                       <div class="ml-2 flex items-center text-xs text-green-600">
                         <TrendingUp class="h-3 w-3 mr-0.5" />
@@ -115,7 +114,7 @@
                   <dd>
                     <div class="flex items-center">
                       <div class="text-lg font-medium text-gray-900">
-                        {{ formatCurrency(customerStats.totalWithdrawalsToday) }}
+                        {{ formatCurrency(calculatedCustomerStats.totalWithdrawalsToday) }}
                       </div>
                       <div class="ml-2 flex items-center text-xs text-amber-600">
                         <TrendingDown class="h-3 w-3 mr-0.5" />
@@ -147,11 +146,10 @@
                   <dd>
                     <div class="flex items-center">
                       <div class="text-lg font-medium text-gray-900">
-                        {{ formatCurrency(customerStats.totalDepositsToday - customerStats.totalWithdrawalsToday) }}
-                      </div>
-                      <div class="ml-2 flex items-center text-xs" :class="(customerStats.totalDepositsToday - customerStats.totalWithdrawalsToday) > 0 ? 'text-green-600' : 'text-red-600'">
-                        <component :is="(customerStats.totalDepositsToday - customerStats.totalWithdrawalsToday) > 0 ? TrendingUp : TrendingDown" class="h-3 w-3 mr-0.5" />
-                        <span>{{ (customerStats.totalDepositsToday - customerStats.totalWithdrawalsToday) > 0 ? '+' : '' }}{{ ((customerStats.totalDepositsToday - customerStats.totalWithdrawalsToday) / Math.max(1, customerStats.totalWithdrawalsToday) * 100).toFixed(1) }}%</span>
+                        {{ formatCurrency(calculatedCustomerStats.totalDepositsToday - calculatedCustomerStats.totalWithdrawalsToday) }}
+                      </div>                      <div class="ml-2 flex items-center text-xs" :class="(calculatedCustomerStats.totalDepositsToday - calculatedCustomerStats.totalWithdrawalsToday) > 0 ? 'text-green-600' : 'text-red-600'">
+                        <component :is="(calculatedCustomerStats.totalDepositsToday - calculatedCustomerStats.totalWithdrawalsToday) > 0 ? TrendingUp : TrendingDown" class="h-3 w-3 mr-0.5" />
+                        <span>{{ (calculatedCustomerStats.totalDepositsToday - calculatedCustomerStats.totalWithdrawalsToday) > 0 ? '+' : '' }}{{ ((calculatedCustomerStats.totalDepositsToday - calculatedCustomerStats.totalWithdrawalsToday) / Math.max(1, calculatedCustomerStats.totalWithdrawalsToday) * 100).toFixed(1) }}%</span>
                       </div>
                     </div>
                   </dd>
@@ -190,6 +188,24 @@
           :customers="customers" 
           :transactions="transactions"
           :loading="loading" 
+        />
+      </div>
+      
+      <!-- Deposits Overview Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4">Deposits Overview</h2>
+        <DepositsOverview
+          :deposits="deposits"
+          :loading="depositsLoading"
+          :total-deposits="totalDeposits"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :deposit-metrics="depositMetrics"
+          @refresh="fetchDeposits()"
+          @export="exportDeposits"
+          @view-deposit="viewDeposit"
+          @edit-deposit="editDeposit"
+          @page-change="handlePageChange"
         />
       </div>
       
@@ -580,6 +596,7 @@ import TransactionApprovalModal from '../components/TransactionApprovalModal.vue
 import VirtualCardManagement from '../components/VirtualCardManagement.vue';
 import CustomerActionModal from '../components/CustomerActionModal.vue';
 import CustomerEditModal from '../components/CustomerEditModal.vue';
+import DepositsOverview from '../components/DepositsOverview.vue';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -629,6 +646,33 @@ const selectedCustomer = ref(null);
 const depositAmount = ref('');
 const depositDescription = ref('');
 const depositLoading = ref(false);
+
+// Component state
+// Using the existing error ref from above instead of declaring a second one
+const customerStats = ref({
+  total: 0,
+  active: 0,
+  inactive: 0,
+  totalDepositsToday: 0,
+  totalWithdrawalsToday: 0
+});
+
+// Deposits data
+const deposits = ref([]);
+const depositsLoading = ref(false);
+const totalDeposits = ref(0);
+const currentPage = ref(1);
+const totalPages = ref(1);
+const depositMetrics = ref({
+  totalAmount: 0,
+  totalCount: 0,
+  fixedAmount: 0,
+  fixedCount: 0,
+  recurringAmount: 0,
+  recurringCount: 0,
+  taxSavingAmount: 0,
+  taxSavingCount: 0
+});
 
 const fetchData = async () => {
   try {
@@ -851,44 +895,46 @@ const fetchData = async () => {
   }
 };
 
-// Function to use mock data for demonstration
-const useMockData = () => {
-  console.log('Using mock data for demonstration');
-  
-  // Make sure loading state is turned off
-  loading.value = false;
-  
-  // Set mock customer data
-  customers.value = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', balance: 5000, account_type: 'savings' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', balance: 7500, account_type: 'current' },
-    { id: 3, name: 'Alice Johnson', email: 'alice@example.com', balance: 3200, account_type: 'savings' },
-    { id: 4, name: 'Bob Williams', email: 'bob@example.com', balance: 10000, account_type: 'fixed' },
-    { id: 5, name: 'Carol Brown', email: 'carol@example.com', balance: 6800, account_type: 'savings' }
-  ];
-  
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const twoDaysAgo = new Date(now);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const threeDaysAgo = new Date(now);
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  
-  transactions.value = [
-    { id: 1, type: 'deposit', amount: 1000, created_at: now.toISOString(), customer_id: 1, customer_name: 'John Doe', status: 'completed' },
-    { id: 2, type: 'deposit', amount: 2500, created_at: yesterday.toISOString(), customer_id: 2, customer_name: 'Jane Smith', status: 'completed' },
-    { id: 3, type: 'withdrawal', amount: 500, created_at: twoDaysAgo.toISOString(), customer_id: 3, customer_name: 'Alice Johnson', status: 'completed' },
-    { id: 4, type: 'withdrawal', amount: 750, created_at: threeDaysAgo.toISOString(), customer_id: 4, customer_name: 'Bob Williams', status: 'completed' },
-    { id: 5, type: 'transfer', amount: 1200, created_at: yesterday.toISOString(), customer_id: 1, customer_name: 'John Doe', status: 'completed' },
-    { id: 6, type: 'deposit', amount: 3000, created_at: twoDaysAgo.toISOString(), customer_id: 5, customer_name: 'Carol Brown', status: 'completed' },
-    { id: 7, type: 'withdrawal', amount: 600, created_at: now.toISOString(), customer_id: 2, customer_name: 'Jane Smith', status: 'pending' },
-    { id: 8, type: 'transfer', amount: 1500, created_at: threeDaysAgo.toISOString(), customer_id: 3, customer_name: 'Alice Johnson', status: 'completed' }
-  ];
-  
-  console.log('Using mock data for demonstration');
-  toast.info('Using sample data for demonstration');
+// Fetch deposits data
+const fetchDeposits = async (page = 1, limit = 10) => {
+  try {
+    depositsLoading.value = true;
+    
+    // Fetch deposits
+    const response = await api.get(`/deposits?page=${page}&limit=${limit}`);
+    
+    if (response.data && response.data.success) {
+      deposits.value = response.data.data || [];
+      totalDeposits.value = response.data.meta?.total || deposits.value.length;
+      totalPages.value = response.data.meta?.totalPages || 1;
+      currentPage.value = page;
+    }
+    
+    // Fetch metrics
+    const metricsResponse = await api.get('/deposits/summary');
+    
+    if (metricsResponse.data && metricsResponse.data.success) {
+      const data = metricsResponse.data.data;
+      
+      depositMetrics.value = {
+        totalAmount: data.totalAmount || 0,
+        totalCount: data.totalCount || 0,
+        fixedAmount: data.fixedAmount || 0,
+        fixedCount: data.fixedCount || 0,
+        recurringAmount: data.recurringAmount || 0,
+        recurringCount: data.recurringCount || 0,
+        taxSavingAmount: data.taxSavingAmount || 0,
+        taxSavingCount: data.taxSavingCount || 0
+      };
+    }
+  } catch (err) {
+    console.error('Error fetching deposits:', err);
+    toast.error('Failed to load deposits data');
+  } finally {
+    depositsLoading.value = false;
+  }
 };
+
 
 // Handle quick action
 const handleQuickAction = (actionId) => {
@@ -1157,6 +1203,23 @@ const handleCustomerUpdate = async (updatedCustomer) => {
   }
 };
 
+// Handle deposit viewing
+const viewDeposit = (deposit) => {
+  // Implementation to view deposit details
+  console.log('View deposit:', deposit);
+};
+
+// Handle deposit editing
+const editDeposit = (deposit) => {
+  // Implementation to edit deposit
+  console.log('Edit deposit:', deposit);
+};
+
+// Handle page change for deposits pagination
+const handlePageChange = (page) => {
+  fetchDeposits(page);
+};
+
 // Computed properties
 const filteredCustomers = computed(() => {
   let filtered = customers.value;
@@ -1245,7 +1308,7 @@ const filteredTransactions = computed(() => {
   return filtered;
 });
 
-const customerStats = computed(() => {
+const calculatedCustomerStats = computed(() => {
   // Calculate today's deposits and withdrawals from actual transactions
   let totalDepositsToday = 0;
   let totalWithdrawalsToday = 0;
@@ -1286,6 +1349,61 @@ const formatAccountType = (type) => {
     case 'current': return 'Current';
     case 'fixed': return 'Fixed Deposit';
     default: return 'Standard';
+  }
+};
+
+// Export deposits data to CSV
+const exportDeposits = () => {
+  try {
+    if (!deposits.value.length) {
+      toast.warning('No deposits data to export');
+      return;
+    }
+
+    // Convert deposits data to CSV format
+    const headers = ['Customer Name', 'Account Number', 'Type', 'Amount', 'Interest Rate', 'Start Date', 'Maturity Date', 'Status'];
+    
+    const csvContent = [
+      headers.join(','),
+      ...deposits.value.map(deposit => {
+        return [
+          deposit.customer_name || 'Unknown',
+          deposit.account_number || 'N/A',
+          formatDepositType(deposit.type),
+          deposit.amount,
+          deposit.interest_rate + '%',
+          new Date(deposit.start_date).toLocaleDateString(),
+          new Date(deposit.maturity_date).toLocaleDateString(),
+          deposit.status
+        ].join(',');
+      })
+    ].join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `deposits-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Deposits data exported successfully');
+  } catch (err) {
+    console.error('Error exporting deposits:', err);
+    toast.error('Failed to export deposits data');
+  }
+};
+
+// Format deposit type for display
+const formatDepositType = (type) => {
+  switch (type) {
+    case 'fixed': return 'Fixed Deposit';
+    case 'recurring': return 'Recurring Deposit';
+    case 'savings': return 'Savings Deposit';
+    case 'tax_saving': return 'Tax Saving FD';
+    default: return type;
   }
 };
 </script>

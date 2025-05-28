@@ -2,6 +2,7 @@ const { pool, query } = require('../config/db.config');
 const { ApiError } = require('../utils/error.utils');
 const CustomerModel = require('./customer.model');
 const emailService = require('../utils/email.utils');
+const DepositModel = require('./deposit.model');
 
 class TransactionModel {
   // Create a new transaction
@@ -11,7 +12,10 @@ class TransactionModel {
       amount, 
       type, 
       description,
-      receiver_account_number = null
+      receiver_account_number = null,
+      deposit_type = null,
+      interest_rate = null,
+      maturity_date = null
     } = transactionData;
     
     try {
@@ -50,9 +54,9 @@ class TransactionModel {
             'INSERT INTO transactions (customer_id, amount, type, description, sender_id, status) VALUES ($1, $2, $3, $4, $5, $6)',
             [receiver_id, amount, 'received', `Received from transfer: ${description}`, customer_id, 'completed']
           );
+            await client.query('COMMIT');
           
-          await client.query('COMMIT');
-            // Get sender and receiver details for email notifications
+          // Get sender and receiver details for email notifications
           const senderDetails = await client.query(
             'SELECT name, email, balance FROM customers WHERE id = $1',
             [customer_id]
@@ -103,59 +107,81 @@ class TransactionModel {
             created_at: new Date()
           };        
         } else if (type === 'deposit') {
-          // Record the transaction only without updating the balance
-          // The balance update will be handled by the controller
-          const result = await client.query(
-            'INSERT INTO transactions (customer_id, amount, type, description, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, customer_id, amount, type, description, status, created_at',
-            [customer_id, amount, type, description, 'completed']
-          );
-            await client.query('COMMIT');
-            // Get customer details for email notification
-          const customerDetails = await client.query(
-            'SELECT name, email, balance FROM customers WHERE id = $1',
-            [customer_id]
-          );
-          
-          console.log('Customer details for deposit notification:', {
-            id: customer_id,
-            name: customerDetails.rows[0]?.name,
-            emailPresent: !!customerDetails.rows[0]?.email,
-            balance: customerDetails.rows[0]?.balance
-          });
-          
-          // Send credit notification to customer
-          try {
-            if (customerDetails.rows[0]?.email) {
-              console.log(`Sending deposit notification to ${customerDetails.rows[0].email}`);
-              await emailService.sendTransactionNotification({
-                to: customerDetails.rows[0].email,
-                subject: 'Credit Alert - Deposit',
-                transactionDetails: {
-                  type,
-                  amount,
-                  description,
-                  balance: customerDetails.rows[0].balance,
-                  transactionId: result.rows[0].id
-                }
-              });
-              console.log('Deposit notification sent successfully');
-            } else {
-              console.warn('Customer email not found, skipping deposit notification');
+          // Handle special deposit types with additional details
+          if (deposit_type) {
+            // For fixed deposits or other types requiring details
+            const fdResult = await DepositModel.createFixedDeposit({
+              customer_id,
+              amount,
+              deposit_type,
+              interest_rate,
+              maturity_date
+            });
+            
+            return {
+              id: fdResult.id,
+              customer_id,
+              amount,
+              type,
+              description,
+              status: 'completed',
+              created_at: new Date()
+            };
+          } else {
+            // Record the transaction only without updating the balance
+            // The balance update will be handled by the controller
+            const result = await client.query(
+              'INSERT INTO transactions (customer_id, amount, type, description, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, customer_id, amount, type, description, status, created_at',
+              [customer_id, amount, type, description, 'completed']
+            );
+              await client.query('COMMIT');
+              // Get customer details for email notification
+            const customerDetails = await client.query(
+              'SELECT name, email, balance FROM customers WHERE id = $1',
+              [customer_id]
+            );
+            
+            console.log('Customer details for deposit notification:', {
+              id: customer_id,
+              name: customerDetails.rows[0]?.name,
+              emailPresent: !!customerDetails.rows[0]?.email,
+              balance: customerDetails.rows[0]?.balance
+            });
+            
+            // Send credit notification to customer
+            try {
+              if (customerDetails.rows[0]?.email) {
+                console.log(`Sending deposit notification to ${customerDetails.rows[0].email}`);
+                await emailService.sendTransactionNotification({
+                  to: customerDetails.rows[0].email,
+                  subject: 'Credit Alert - Deposit',
+                  transactionDetails: {
+                    type,
+                    amount,
+                    description,
+                    balance: customerDetails.rows[0].balance,
+                    transactionId: result.rows[0].id
+                  }
+                });
+                console.log('Deposit notification sent successfully');
+              } else {
+                console.warn('Customer email not found, skipping deposit notification');
+              }
+            } catch (emailError) {
+              console.error('Failed to send deposit notification:', emailError.message);
+              // Continue execution despite email failure
             }
-          } catch (emailError) {
-            console.error('Failed to send deposit notification:', emailError.message);
-            // Continue execution despite email failure
+            
+            return result.rows[0] || {
+              id: result.rows[0].id,
+              customer_id,
+              amount,
+              type,
+              description,
+              status: 'completed',
+              created_at: new Date()
+            };        
           }
-          
-          return result.rows[0] || {
-            id: result.rows[0].id,
-            customer_id,
-            amount,
-            type,
-            description,
-            status: 'completed',
-            created_at: new Date()
-          };        
         } else if (type === 'withdrawal') {
           // Record the transaction only - let the controller handle balance updates
           const result = await client.query(

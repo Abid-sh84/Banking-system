@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
+const { initializeDepositsTable } = require('./db.deposits');
 
 // Load environment variables with absolute path
 const envPath = path.resolve('c:\\Users\\Shamim shaikh\\Desktop\\Assignment\\project\\backend\\.env');
@@ -198,8 +199,9 @@ async function initializeDatabase() {
         ['Test Customer', 'customer@example.com', hashedPassword, '123 Test St', '1234567890', accountNumber, customerId, 1000.00, 'savings']
       );
       console.log('Test customer created: customer@example.com / customer123');
-    }
-
+    }    // Initialize deposits table
+    await initializeDepositsTable();
+    
     console.log('Database initialization completed successfully');
     await pool.end();
   } catch (error) {
