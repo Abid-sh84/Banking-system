@@ -248,10 +248,12 @@
               Clear all
             </button>
           </div>
-            <div class="border-t border-gray-100">
+        <div class="border-t border-gray-100">
             <TransactionList 
               :transactions="filteredTransactions" 
-              @view-transaction="openTransactionDetails"
+              @view-transaction="(transaction) => {
+                setTimeout(() => openTransactionDetails(transaction), 0);
+              }"
             />
           </div>
           
@@ -476,13 +478,14 @@
       :initial-filters="filters"
       @apply-filters="applyFilters"
     />
-    
-    <!-- Transaction Details Modal -->
+      <!-- Transaction Details Modal -->
     <TransactionModal
       v-if="selectedTransaction"
       v-model="showTransactionDetailsModal"
       :transaction-data="selectedTransaction"
+      :key="`transaction-details-${selectedTransaction.id}`"
       mode="view"
+      class="z-[60]"
     />
   </div>
 </template>
@@ -835,7 +838,8 @@ const filteredTransactions = computed(() => {
   
   // If no filters are applied, return all transactions
   if (!appliedFilters.value.active) {
-    return transactions.value.slice(0, 10); // Show only last 10 transactions by default
+    // Return all transactions, no slicing
+    return transactions.value; 
   }
   
   // Apply filters
@@ -947,6 +951,15 @@ const openTransferModal = () => {
 
 // Open deposit modal
 const openDepositModal = () => {
+  // Close all other modals first
+  showTransactionDetailsModal.value = false;
+  showTransferModal.value = false;
+  showTransactionModal.value = false;
+  showExportModal.value = false;
+  showFilterModal.value = false;
+  showCardViewModal.value = false;
+  
+  selectedTransaction.value = null;
   showDepositModal.value = true;
 };
 
@@ -1047,13 +1060,17 @@ const handleDepositComplete = async (depositData) => {
     const response = await api.post('/deposits', {
       customerId: customerData.value.id,
       amount: parseFloat(depositData.amount),
-      depositType: depositData.type,
+      depositType: depositData.type, // This should be 'fixed', 'recurring', 'savings' or 'tax_saving'
       interestRate: depositData.interestRate,
       tenure: depositData.tenure,
       description: depositData.description || `${depositData.type.toUpperCase()} Deposit`
     });
+      console.log('Deposit response:', response.data);
     
-    console.log('Deposit response:', response.data);
+    // Log the deposit type from the response
+    if (response.data.data && response.data.data.deposit) {
+      console.log('Deposit type from server:', response.data.data.deposit.type);
+    }
     
     // Update local balance
     if (response.data.data.transaction && response.data.data.transaction.balance !== undefined) {
@@ -1066,6 +1083,11 @@ const handleDepositComplete = async (depositData) => {
     // Add new deposit to the list
     if (response.data.data.deposit) {
       const newDeposit = response.data.data.deposit;
+      // Make sure the deposit type is preserved
+      if (newDeposit.type !== depositData.type) {
+        console.warn(`Deposit type mismatch: sent ${depositData.type} but received ${newDeposit.type}`);
+        newDeposit.type = depositData.type;
+      }
       deposits.value = Array.isArray(deposits.value) 
         ? [newDeposit, ...deposits.value] 
         : [newDeposit];
@@ -1238,8 +1260,27 @@ const exportTransactions = async (exportOptions) => {
 
 // Open transaction details modal
 const openTransactionDetails = (transaction) => {
-  selectedTransaction.value = transaction;
-  showTransactionDetailsModal.value = true;
+  console.log('Transaction selected:', transaction);
+  // Make sure we have a valid transaction object
+  if (transaction && transaction.id) {
+    // Close all other modals first
+    showDepositModal.value = false;
+    showTransferModal.value = false;
+    showTransactionModal.value = false;
+    showExportModal.value = false;
+    showFilterModal.value = false;
+    showCardViewModal.value = false;
+    
+    // Then set the selected transaction and open the details modal
+    selectedTransaction.value = transaction;
+    showTransactionDetailsModal.value = true;
+    
+    console.log('Opening modal with transaction:', transaction);
+    console.log('Modal state:', showTransactionDetailsModal.value);
+  } else {
+    console.error('Invalid transaction selected:', transaction);
+    toast.error('Could not view transaction details');
+  }
 };
 
 // Watchers
@@ -1250,6 +1291,20 @@ watch(() => authStore.isAuthenticated, (newVal) => {
     fetchCardData();
     fetchCibilScore();
     fetchDeposits();
+  }
+});
+
+// Watch transaction details modal state
+watch(() => showTransactionDetailsModal.value, (isOpen) => {
+  if (isOpen) {
+    // Ensure all other modals are closed when transaction details modal is shown
+    showDepositModal.value = false;
+    showTransferModal.value = false;
+    showTransactionModal.value = false;
+    showExportModal.value = false;
+    showFilterModal.value = false;
+    showCardViewModal.value = false;
+    console.log('Transaction details modal opened, closing other modals');
   }
 });
 </script>

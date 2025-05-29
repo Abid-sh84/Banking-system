@@ -40,12 +40,12 @@ class DepositModel {
       throw new ApiError(500, `Error creating deposit: ${error.message}`);
     }
   }
-  
-  // Create a fixed deposit
+    // Create a fixed deposit
   static async createFixedDeposit(depositData) {
     // Set the type to fixed
-    depositData.type = 'fixed';
-    return this.create(depositData);
+    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
+    depositDataCopy.type = 'fixed';
+    return this.create(depositDataCopy);
   }
   
   // Get all deposits for a customer
@@ -140,22 +140,25 @@ class DepositModel {
     // Get deposits summary (for dashboard metrics)  // Create a recurring deposit
   static async createRecurringDeposit(depositData) {
     // Set the type to recurring
-    depositData.type = 'recurring';
-    return this.create(depositData);
+    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
+    depositDataCopy.type = 'recurring';
+    return this.create(depositDataCopy);
   }
   
   // Create a savings deposit
   static async createSavingsDeposit(depositData) {
     // Set the type to savings
-    depositData.type = 'savings';
-    return this.create(depositData);
+    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
+    depositDataCopy.type = 'savings';
+    return this.create(depositDataCopy);
   }
   
   // Create a tax saving deposit
   static async createTaxSavingDeposit(depositData) {
     // Set the type to tax_saving
-    depositData.type = 'tax_saving';
-    return this.create(depositData);
+    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
+    depositDataCopy.type = 'tax_saving';
+    return this.create(depositDataCopy);
   }
   
   static async getDepositsSummary() {

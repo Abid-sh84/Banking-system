@@ -190,17 +190,35 @@
           :loading="loading" 
         />
       </div>
-      
-      <!-- Deposits Overview Section -->
+        <!-- Deposits Overview Section -->
       <div class="mb-8">
-        <h2 class="text-xl font-bold mb-4">Deposits Overview</h2>
+        <h2 class="text-xl font-bold mb-4 flex items-center">
+          <Landmark class="h-5 w-5 mr-2 text-blue-500" />
+          Deposits Overview
+          <button 
+            @click="fetchDeposits()" 
+            class="ml-2 inline-flex items-center p-1 text-sm text-gray-500 rounded-full hover:bg-gray-100"
+            title="Refresh deposits data"
+          >
+            <RefreshCw class="h-4 w-4" />
+          </button>
+        </h2>
         <DepositsOverview
-          :deposits="deposits"
+          :deposits="deposits || []"
           :loading="depositsLoading"
           :total-deposits="totalDeposits"
           :current-page="currentPage"
-          :total-pages="totalPages"
-          :deposit-metrics="depositMetrics"
+          :total-pages="totalPages || 1"
+          :deposit-metrics="depositMetrics || {
+            totalAmount: 0,
+            totalCount: 0,
+            fixedAmount: 0,
+            fixedCount: 0,
+            recurringAmount: 0,
+            recurringCount: 0,
+            taxSavingAmount: 0,
+            taxSavingCount: 0
+          }"
           @refresh="fetchDeposits()"
           @export="exportDeposits"
           @view-deposit="viewDeposit"
@@ -884,12 +902,16 @@ const fetchData = async () => {
   } finally {
     // Ensure this code always runs to prevent eternal loading state
     console.log('Finally block executed, setting loading to false');
-    
-    // If after all attempts we still have no data, use mock data as a last resort
+      // If after all attempts we still have no data, use mock data as a last resort
     if (customers.value.length === 0) {
       console.log('No customers were loaded, using mock data as fallback');
       useMockData();
     }
+    
+    // Fetch deposits data
+    fetchDeposits().catch(err => {
+      console.error('Error fetching deposits data during initialization:', err);
+    });
     
     loading.value = false;
   }
@@ -899,33 +921,59 @@ const fetchData = async () => {
 const fetchDeposits = async (page = 1, limit = 10) => {
   try {
     depositsLoading.value = true;
+    console.log('Fetching deposits data for banker dashboard...');
+    
+    // Initialize with default values in case API calls fail
+    if (!deposits.value || deposits.value.length === 0) {
+      deposits.value = [];
+    }
+    
+    // Setup default metrics in case API call fails
+    depositMetrics.value = depositMetrics.value || {
+      totalAmount: 0,
+      totalCount: 0,
+      fixedAmount: 0,
+      fixedCount: 0,
+      recurringAmount: 0,
+      recurringCount: 0,
+      taxSavingAmount: 0,
+      taxSavingCount: 0
+    };
     
     // Fetch deposits
     const response = await api.get(`/deposits?page=${page}&limit=${limit}`);
+    
+    console.log('Deposits response:', response.data);
     
     if (response.data && response.data.success) {
       deposits.value = response.data.data || [];
       totalDeposits.value = response.data.meta?.total || deposits.value.length;
       totalPages.value = response.data.meta?.totalPages || 1;
       currentPage.value = page;
+    } else {
+      console.error('Invalid response format from deposits API:', response.data);
     }
     
     // Fetch metrics
     const metricsResponse = await api.get('/deposits/summary');
     
+    console.log('Deposit metrics response:', metricsResponse.data);
+    
     if (metricsResponse.data && metricsResponse.data.success) {
-      const data = metricsResponse.data.data;
+      const data = metricsResponse.data.data || {};
       
       depositMetrics.value = {
-        totalAmount: data.totalAmount || 0,
-        totalCount: data.totalCount || 0,
-        fixedAmount: data.fixedAmount || 0,
-        fixedCount: data.fixedCount || 0,
-        recurringAmount: data.recurringAmount || 0,
-        recurringCount: data.recurringCount || 0,
-        taxSavingAmount: data.taxSavingAmount || 0,
-        taxSavingCount: data.taxSavingCount || 0
+        totalAmount: data.total_amount || 0,
+        totalCount: data.total_count || 0,
+        fixedAmount: data.fixed_amount || 0,
+        fixedCount: data.fixed_count || 0,
+        recurringAmount: data.recurring_amount || 0,
+        recurringCount: data.recurring_count || 0,
+        taxSavingAmount: data.tax_saving_amount || 0,
+        taxSavingCount: data.tax_saving_count || 0
       };
+    } else {
+      console.error('Invalid response format from deposit metrics API:', metricsResponse.data);
     }
   } catch (err) {
     console.error('Error fetching deposits:', err);
@@ -1037,7 +1085,27 @@ const loadMoreTransactions = () => {
 // Call fetchData on component mount
 onMounted(() => {
   console.log('BankerDashboard component mounted, fetching data...');
+  
+  // Initialize default values for deposits and metrics
+  deposits.value = deposits.value || [];
+  depositMetrics.value = depositMetrics.value || {
+    totalAmount: 0,
+    totalCount: 0,
+    fixedAmount: 0,
+    fixedCount: 0,
+    recurringAmount: 0,
+    recurringCount: 0,
+    taxSavingAmount: 0,
+    taxSavingCount: 0
+  };
+  
+  // Fetch customer data
   fetchData();
+  
+  // Separately fetch deposits data to ensure it loads even if fetchData fails
+  fetchDeposits().catch(err => {
+    console.error('Error fetching deposits during initialization:', err);
+  });
 });
 
 // Export transactions as CSV
