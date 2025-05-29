@@ -1,11 +1,15 @@
-<!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\src\components\TransactionList.vue -->
+<!-- TransactionList component -->
 <template>
   <div class="bg-white shadow overflow-hidden sm:rounded-md">
     <ul class="divide-y divide-gray-200">
       <li v-if="!transactions || transactions.length === 0" class="px-6 py-4 text-center text-gray-500">
         No transactions to display
-      </li>
-      <li v-for="transaction in safeTransactions" :key="transaction.id" class="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors duration-200">
+      </li>      <li 
+        v-for="transaction in safeTransactions" 
+        :key="transaction.id" 
+        class="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+        @click="$emit('view-transaction', transaction)"
+      >
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
             <div class="rounded-full p-2" :class="getTransactionTypeClass(transaction.type).bgClass">
@@ -43,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, computed } from 'vue';
+import { ref, defineProps, defineEmits, computed } from 'vue';
 import { ArrowUpRight, ArrowDownLeft, Send, ArrowDownRight } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -52,6 +56,8 @@ const props = defineProps({
     required: true
   }
 });
+
+const emit = defineEmits(['view-transaction']);
 
 // Filter out any invalid transactions to prevent errors
 const safeTransactions = computed(() => {

@@ -33,8 +33,8 @@ const createDeposit = asyncHandler(async (req, res) => {
     maturity_date: maturityDate
   });
   
-  // Now create the deposit entry linking to the transaction
-  const deposit = await DepositModel.create({
+  // Prepare deposit data
+  const depositData = {
     customer_id: customerId,
     amount: parseFloat(amount),
     type: depositType,
@@ -42,7 +42,26 @@ const createDeposit = asyncHandler(async (req, res) => {
     maturity_date: maturityDate,
     description: description || `${depositType.toUpperCase()} Deposit for ${tenure} months`,
     transaction_id: transaction.id
-  });
+  };
+  
+  // Create appropriate deposit type
+  let deposit;
+  switch(depositType) {
+    case 'fixed':
+      deposit = await DepositModel.createFixedDeposit(depositData);
+      break;
+    case 'recurring':
+      deposit = await DepositModel.createRecurringDeposit(depositData);
+      break;
+    case 'savings':
+      deposit = await DepositModel.createSavingsDeposit(depositData);
+      break;
+    case 'tax_saving':
+      deposit = await DepositModel.createTaxSavingDeposit(depositData);
+      break;
+    default:
+      deposit = await DepositModel.create(depositData);
+  }
   
   res.status(201).json({
     success: true,

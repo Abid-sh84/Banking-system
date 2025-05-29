@@ -70,14 +70,29 @@ const props = defineProps({
     default: 750
   },
   lastUpdated: {
-    type: Date,
+    type: [Date, String],
     default: () => new Date()
   }
 });
 
 const formattedDate = computed(() => {
   const options = { year: 'numeric', month: 'short', day: 'numeric' };
-  return props.lastUpdated.toLocaleDateString('en-US', options);
+  try {
+    // Check if lastUpdated is a string and convert to Date if needed
+    const dateObj = typeof props.lastUpdated === 'string' 
+      ? new Date(props.lastUpdated) 
+      : props.lastUpdated;
+      
+    // Check if valid date before formatting
+    if (dateObj instanceof Date && !isNaN(dateObj)) {
+      return dateObj.toLocaleDateString('en-US', options);
+    } else {
+      return new Date().toLocaleDateString('en-US', options);
+    }
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return new Date().toLocaleDateString('en-US', options);
+  }
 });
 
 const scorePercentage = computed(() => {

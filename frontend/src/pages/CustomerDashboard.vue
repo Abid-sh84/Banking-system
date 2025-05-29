@@ -1,4 +1,4 @@
-<!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\src\pages\CustomerDashboard.vue -->
+<!-- CustomerDashboard.vue -->
 <template>
   <div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">      <div v-if="loading" class="flex items-center justify-center py-12">
@@ -189,8 +189,7 @@
           @create-deposit="openDepositModal"
           class="mb-8"
         />
-        
-        <!-- Transaction History -->
+          <!-- Transaction History -->
         <div class="mb-8 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
           <div class="px-6 py-5 flex justify-between items-center">
             <div>
@@ -204,22 +203,62 @@
             </div>
             <div>
               <div class="inline-flex rounded-md shadow-sm">
-                <button type="button" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <button 
+                  @click="showFilterModal = true" 
+                  type="button" 
+                  class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
                   <Filter class="h-4 w-4 mr-1" />
                   Filter
                 </button>
-                <button type="button" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ml-2">
+                <button 
+                  @click="showExportModal = true" 
+                  type="button" 
+                  class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ml-2"
+                >
                   <Download class="h-4 w-4 mr-1" />
                   Export
                 </button>
               </div>
             </div>
           </div>
-          <div class="border-t border-gray-100">
-            <TransactionList :transactions="transactions" />
+          
+          <div v-if="appliedFilters.active" class="px-6 py-3 bg-blue-50 border-t border-b border-blue-100 flex items-center justify-between">
+            <div class="flex items-center">
+              <span class="text-sm font-medium text-blue-700 mr-2">Filters applied:</span>
+              <div class="flex flex-wrap gap-2">
+                <div v-if="appliedFilters.type" class="bg-white px-2 py-1 rounded text-xs text-blue-700 border border-blue-200">
+                  Type: {{ appliedFilters.type }}
+                </div>
+                <div v-if="appliedFilters.dateRange" class="bg-white px-2 py-1 rounded text-xs text-blue-700 border border-blue-200">
+                  Date: {{ appliedFilters.dateRange }}
+                </div>
+                <div v-if="appliedFilters.minAmount > 0" class="bg-white px-2 py-1 rounded text-xs text-blue-700 border border-blue-200">
+                  Min: ₹{{ appliedFilters.minAmount }}
+                </div>
+                <div v-if="appliedFilters.maxAmount > 0" class="bg-white px-2 py-1 rounded text-xs text-blue-700 border border-blue-200">
+                  Max: ₹{{ appliedFilters.maxAmount }}
+                </div>
+              </div>
+            </div>
+            <button
+              @click="resetFilters"
+              class="text-xs text-blue-700 hover:text-blue-900 font-medium"
+            >
+              Clear all
+            </button>
           </div>
+            <div class="border-t border-gray-100">
+            <TransactionList 
+              :transactions="filteredTransactions" 
+              @view-transaction="openTransactionDetails"
+            />
+          </div>
+          
           <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-            <span class="text-sm text-gray-500">Showing recent transactions</span>
+            <span class="text-sm text-gray-500">
+              Showing {{ filteredTransactions.length }} of {{ transactions.length }} transactions
+            </span>
             <button 
               @click="viewAllTransactions" 
               class="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center"
@@ -419,18 +458,55 @@
       v-model="showTransferModal"
       :available-balance="balance"
       @transfer-complete="handleTransferComplete"
-    />
-      <!-- Card View Modal -->
+    />    <!-- Card View Modal -->
     <CardViewModal 
       v-model="showCardViewModal"
       :card="virtualCard"
+    />
+      <!-- Export Modal -->
+    <ExportReportModal
+      v-model="showExportModal"
+      :transactions="transactions"
+      @export="exportTransactions"
+    />
+    
+    <!-- Transaction Filters Modal -->
+    <TransactionFiltersModal
+      v-model="showFilterModal"
+      :initial-filters="filters"
+      @apply-filters="applyFilters"
+    />
+    
+    <!-- Transaction Details Modal -->
+    <TransactionModal
+      v-if="selectedTransaction"
+      v-model="showTransactionDetailsModal"
+      :transaction-data="selectedTransaction"
+      mode="view"
     />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { ArrowUpRight, ArrowDownLeft, CreditCard, ClipboardList, AlertTriangle, Ban, Send } from 'lucide-vue-next';
+import { 
+  ArrowUpRight, 
+  ArrowDownLeft, 
+  CreditCard, 
+  ClipboardList, 
+  AlertTriangle, 
+  Ban, 
+  Send, 
+  Download, 
+  Filter, 
+  ChevronRight,
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Activity,
+  Calendar
+} from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import api, { cardService } from '../services/api';
@@ -440,6 +516,9 @@ import CardViewModal from '../components/CardViewModal.vue';
 import TransferModal from '../components/TransferModal.vue';
 import CibilScoreGauge from '../components/CibilScoreGauge.vue'; // Add CIBIL gauge component
 import DepositsTable from '../components/DepositsTable.vue'; // Add deposits table component
+import TransactionList from '../components/TransactionList.vue'; // Add TransactionList component
+import ExportReportModal from '../components/ExportReportModal.vue'; // Add ExportReportModal
+import TransactionFiltersModal from '../components/TransactionFiltersModal.vue'; // Add TransactionFiltersModal
 import VirtualCardSection from '../components/VirtualCardSection.vue'; // Import missing component
 import { useAuthStore } from '../stores/authStore';
 
@@ -458,6 +537,26 @@ const accountStatus = ref('active');
 // Transaction modal state
 const showTransactionModal = ref(false);
 const transactionType = ref('deposit');
+
+// Transaction filtering and export
+const showFilterModal = ref(false);
+const showExportModal = ref(false);
+const selectedTransaction = ref(null);
+const showTransactionDetailsModal = ref(false);
+const filters = ref({
+  type: '',
+  startDate: '',
+  endDate: '',
+  minAmount: '',
+  maxAmount: ''
+});
+const appliedFilters = ref({
+  active: false,
+  type: '',
+  dateRange: '',
+  minAmount: 0,
+  maxAmount: 0
+});
 
 // Card view modal state
 const showCardViewModal = ref(false);
@@ -509,27 +608,19 @@ const fetchData = async () => {
       errorMessage.value = 'You must be logged in to view this page';
       return;
     }
-      try {
-      // Fetch account balance and profile
-      const profileResponse = await api.get('/customers/profile');
-      console.log('Profile response:', profileResponse.data);
-        // Extract and save the full customer data
-      if (profileResponse.data && profileResponse.data.data) {
-        customerData.value = profileResponse.data.data;
-        balance.value = profileResponse.data.data.balance || 0;
-        
-        // Set account status
-        accountStatus.value = profileResponse.data.data.status || 'active';
-        console.log('Account status set to:', accountStatus.value);
-        
-        // Show notification if account is frozen or inactive
-        if (accountStatus.value === 'frozen') {
-          toast.warning('Your account is frozen. You can view your account details, but transactions are disabled.');
-        } else if (accountStatus.value === 'inactive') {
-          toast.error('Your account is inactive. Please contact bank support.');
-        }
-      } else {
-        console.error('Invalid profile response structure:', profileResponse.data);
+    
+    try {
+      // Use our fetchCustomerData function to get profile information
+      await fetchCustomerData();
+      
+      // Show notification based on account status
+      if (accountStatus.value === 'frozen') {
+        toast.warning('Your account is frozen. You can view your account details, but transactions are disabled.');
+      } else if (accountStatus.value === 'inactive') {
+        toast.error('Your account is inactive. Please contact bank support.');
+      }
+      
+      if (!customerData.value) {
         errorMessage.value = 'Failed to parse profile data.';
         return;
       }
@@ -538,24 +629,9 @@ const fetchData = async () => {
       errorMessage.value = 'Failed to load profile data: ' + 
         (profileErr.response?.data?.message || profileErr.message || 'Unknown error');
       return;
-    }
-      try {
-      // Fetch transactions
-      const transactionsResponse = await api.get('/customers/transactions');
-      console.log('Transactions response:', transactionsResponse.data);
-      
-      // Make sure transactions is an array
-      if (transactionsResponse.data && transactionsResponse.data.data) {
-        if (Array.isArray(transactionsResponse.data.data)) {
-          transactions.value = transactionsResponse.data.data;
-        } else {
-          console.error('Transactions data is not an array:', transactionsResponse.data);
-          transactions.value = [];
-        }
-      } else {
-        console.error('Invalid transaction response structure:', transactionsResponse.data);
-        transactions.value = [];
-      }
+    }    try {
+      // Use our fetchTransactions function to load transaction data
+      await fetchTransactions();
     } catch (transactionErr) {
       console.error('Error fetching transactions:', transactionErr);
       errorMessage.value = 'Failed to load transaction data: ' + 
@@ -590,12 +666,26 @@ const fetchCardData = async () => {
 };
 
 // Fetch CIBIL score data
-const fetchCibilScore = async () => {
-  try {
+const fetchCibilScore = async () => {  try {
     const response = await api.get('/customers/cibil-score');
     if (response.data && response.data.success) {
       cibilScore.value = response.data.data.score;
-      cibilScoreLastUpdated.value = response.data.data.lastUpdated || response.data.data.last_updated || new Date();
+      
+      // Safely parse the lastUpdated date or use current date as fallback
+      const dateValue = response.data.data.lastUpdated || response.data.data.last_updated;
+      if (dateValue) {
+        try {
+          // Try to parse the date, fall back to string if it fails
+          const parsedDate = new Date(dateValue);
+          cibilScoreLastUpdated.value = !isNaN(parsedDate.getTime()) ? parsedDate : dateValue;
+        } catch (e) {
+          // If parsing fails, just use the string value directly
+          cibilScoreLastUpdated.value = dateValue; 
+        }
+      } else {
+        // No date provided, use current date
+        cibilScoreLastUpdated.value = new Date();
+      }
     }
   } catch (err) {
     console.error('Error fetching CIBIL score:', err);
@@ -613,6 +703,62 @@ const fetchCibilScore = async () => {
     
     // Don't show error toast to user since this is not critical functionality
     // We'll just use the default score instead
+  }
+};
+
+// Fetch customer profile/account data
+const fetchCustomerData = async () => {
+  try {
+    // Check if authenticated
+    if (!authStore.isAuthenticated) {
+      errorMessage.value = 'You must be logged in to view this page';
+      return;
+    }
+    
+    // Fetch account balance and profile
+    const profileResponse = await api.get('/customers/profile');
+    console.log('Profile response:', profileResponse.data);
+    
+    // Extract and save the full customer data
+    if (profileResponse.data && profileResponse.data.data) {
+      customerData.value = profileResponse.data.data;
+      balance.value = profileResponse.data.data.balance || 0;
+      
+      // Set account status
+      accountStatus.value = profileResponse.data.data.status || 'active';
+      console.log('Account status set to:', accountStatus.value);
+    } else {
+      console.error('Invalid profile response structure:', profileResponse.data);
+    }
+  } catch (error) {
+    console.error('Error fetching customer data:', error);
+    toast.error('Failed to refresh account data');
+  }
+};
+
+// Fetch transactions data
+const fetchTransactions = async () => {
+  try {
+    // Fetch transactions
+    const transactionsResponse = await api.get('/customers/transactions');
+    console.log('Transactions response:', transactionsResponse.data);
+    
+    // Make sure transactions is an array
+    if (transactionsResponse.data && transactionsResponse.data.data) {
+      if (Array.isArray(transactionsResponse.data.data)) {
+        transactions.value = transactionsResponse.data.data;
+      } else {
+        console.error('Transactions data is not an array:', transactionsResponse.data);
+        transactions.value = [];
+      }
+    } else {
+      console.error('Invalid transaction response structure:', transactionsResponse.data);
+      transactions.value = [];
+    }
+  } catch (err) {
+    console.error('Error fetching transactions:', err);
+    // Don't show error toast to avoid overwhelming user
+    transactions.value = [];
   }
 };
 
@@ -679,6 +825,60 @@ const lastActivity = computed(() => {
     });
   
   return sortedTransactions.length > 0 ? (sortedTransactions[0].created_at || sortedTransactions[0].date) : null;
+});
+
+// Computed properties for filtered transactions
+const filteredTransactions = computed(() => {
+  if (!transactions.value || !Array.isArray(transactions.value)) {
+    return [];
+  }
+  
+  // If no filters are applied, return all transactions
+  if (!appliedFilters.value.active) {
+    return transactions.value.slice(0, 10); // Show only last 10 transactions by default
+  }
+  
+  // Apply filters
+  return transactions.value.filter(transaction => {
+    // Type filter
+    if (appliedFilters.value.type && transaction.type !== appliedFilters.value.type) {
+      return false;
+    }
+    
+    // Amount range filter
+    const amount = parseFloat(transaction.amount);
+    if (appliedFilters.value.minAmount > 0 && amount < appliedFilters.value.minAmount) {
+      return false;
+    }
+    if (appliedFilters.value.maxAmount > 0 && amount > appliedFilters.value.maxAmount) {
+      return false;
+    }
+      // Date range filter
+    if (appliedFilters.value.dateRange) {
+      const transactionDate = new Date(transaction.created_at || transaction.date);
+      
+      try {
+        // Parse date strings and set time to start/end of day for accurate comparison
+        const dateStrings = appliedFilters.value.dateRange.split(' - ');
+        
+        if (dateStrings.length === 2) {
+          const startDate = new Date(dateStrings[0]);
+          startDate.setHours(0, 0, 0, 0);
+          
+          const endDate = new Date(dateStrings[1]);
+          endDate.setHours(23, 59, 59, 999);
+          
+          if (transactionDate < startDate || transactionDate > endDate) {
+            return false;
+          }
+        }
+      } catch (err) {
+        console.error("Error parsing date range:", err);
+      }
+    }
+    
+    return true;
+  });
 });
 
 // Helper methods
@@ -896,6 +1096,150 @@ const refreshCibilScore = async () => {
   toast.info('Refreshing CIBIL score...');
   await fetchCibilScore();
   toast.success('CIBIL score updated');
+};
+
+// View all transactions
+const viewAllTransactions = () => {
+  router.push('/transactions');
+};
+
+// Apply filters to transactions
+const applyFilters = (newFilters) => {
+  // Format the applied filters for display
+  appliedFilters.value = {
+    active: true,
+    type: newFilters.type || '',
+    dateRange: newFilters.startDate && newFilters.endDate 
+      ? `${new Date(newFilters.startDate).toLocaleDateString()} - ${new Date(newFilters.endDate).toLocaleDateString()}` 
+      : '',
+    minAmount: parseFloat(newFilters.minAmount) || 0,
+    maxAmount: parseFloat(newFilters.maxAmount) || 0
+  };
+  
+  // Save filters for potential reuse
+  filters.value = {
+    type: newFilters.type || '',
+    startDate: newFilters.startDate || '',
+    endDate: newFilters.endDate || '',
+    minAmount: newFilters.minAmount || '',
+    maxAmount: newFilters.maxAmount || ''
+  };
+  
+  // Close filter modal
+  showFilterModal.value = false;
+};
+
+// Reset filters
+const resetFilters = () => {
+  appliedFilters.value = {
+    active: false,
+    type: '',
+    dateRange: '',
+    minAmount: 0,
+    maxAmount: 0
+  };
+  filters.value = {
+    type: '',
+    startDate: '',
+    endDate: '',
+    minAmount: '',
+    maxAmount: ''
+  };
+};
+
+// Export transactions
+const exportTransactions = async (exportOptions) => {
+  try {
+    // Determine which transactions to export
+    const transactionsToExport = appliedFilters.value.active 
+      ? filteredTransactions.value 
+      : transactions.value;
+    
+    // Format transactions according to selected fields
+    const formattedData = transactionsToExport.map(transaction => {
+      const data = {};
+      
+      if (exportOptions.selectedFields.includes('transaction_id')) {
+        data.transaction_id = transaction.id;
+      }
+      
+      if (exportOptions.selectedFields.includes('date')) {
+        data.date = formatDate(transaction.created_at || transaction.date);
+      }
+      
+      if (exportOptions.selectedFields.includes('type')) {
+        data.type = transaction.type;
+      }
+      
+      if (exportOptions.selectedFields.includes('amount')) {
+        data.amount = transaction.amount;
+      }
+      
+      if (exportOptions.selectedFields.includes('description')) {
+        data.description = transaction.description || '';
+      }
+      
+      if (exportOptions.selectedFields.includes('status')) {
+        data.status = transaction.status || 'completed';
+      }
+      
+      return data;
+    });
+    
+    // Generate a CSV or download file
+    const format = exportOptions.format;
+    
+    if (format === 'csv') {
+      // Create CSV content
+      const headers = exportOptions.selectedFields;
+      let csvContent = headers.join(',') + '\n';
+      
+      formattedData.forEach(item => {
+        const row = headers.map(header => {
+          // Handle special characters and quotes in CSV
+          const value = String(item[header] || '');
+          return `"${value.replace(/"/g, '""')}"`;
+        });
+        csvContent += row.join(',') + '\n';
+      });
+      
+      // Create a download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Transactions exported successfully');
+    } else if (format === 'xlsx' || format === 'pdf') {
+      toast.info(`${format.toUpperCase()} export initiated, check your downloads folder`);
+      
+      // Request server-side export
+      await api.post('/customers/export-transactions', {
+        format,
+        data: formattedData,
+        filename: `transactions_${new Date().toISOString().split('T')[0]}`
+      }, { responseType: 'blob' });
+      
+      toast.success(`Transactions exported to ${format.toUpperCase()} successfully`);
+    }
+    
+    // Close export modal
+    showExportModal.value = false;
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    toast.error('Failed to export transactions');
+  }
+};
+
+// Open transaction details modal
+const openTransactionDetails = (transaction) => {
+  selectedTransaction.value = transaction;
+  showTransactionDetailsModal.value = true;
 };
 
 // Watchers
