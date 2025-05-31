@@ -46,5 +46,5 @@ Sitemap: ${process.env.VITE_SITE_URL || 'https://banking-system-frontend.vercel.
   fs.writeFileSync(path.join(__dirname, 'dist', 'robots.txt'), robotsContent);
   console.log('Created robots.txt file');
 }
-
+// connection message
 console.log('All build operations completed successfully!');
