@@ -677,6 +677,17 @@ const formData = reactive({
 
 // Get account type from query parameter
 onMounted(() => {
+  // Redirect authenticated users to their dashboard
+  if (authStore.isAuthenticated) {
+    if (authStore.isCustomer) {
+      router.replace('/customer/dashboard');
+    } else if (authStore.isBanker) {
+      router.replace('/banker/dashboard');
+    }
+    return;
+  }
+
+  // Set account type from query parameters
   if (route.query.accountType) {
     formData.accountType = route.query.accountType;
   } else {

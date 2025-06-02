@@ -30,8 +30,8 @@
                 Experience the future of banking with our secure digital platform.
                 Manage accounts, make transactions, and track spending—all in one
                 place, with ₹ INR support.
-              </p>
-              <div class="mt-10 flex flex-col sm:flex-row gap-4">                <router-link
+              </p>              <div class="mt-10 flex flex-col sm:flex-row gap-4" v-if="!authStore.isAuthenticated">
+                <router-link
                   to="/customer/login"
                   class="px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-lg bg-blue-500 text-white hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-300 text-center"
                 >
@@ -43,7 +43,15 @@
                 >
                   Open an Account
                 </router-link>
-              </div>            </div>
+              </div>
+              <div class="mt-10 flex flex-col sm:flex-row gap-4" v-else>
+                <router-link
+                  :to="authStore.role === 'customer' ? '/customer/dashboard' : '/banker/dashboard'"
+                  class="px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-lg bg-blue-500 text-white hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-300 text-center"
+                >
+                  Go to Dashboard
+                </router-link>
+              </div></div>
               <div class="block w-full lg:w-auto transaction-card">              <div class="relative max-w-md mx-auto animate-fadeIn">
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg transform skew-y-0 sm:rotate-3 rounded-3xl"></div>
                 <div class="relative bg-white p-6 rounded-3xl shadow-lg">
@@ -317,13 +325,23 @@
               <p class="mt-3 text-base text-gray-500">
                 Sign up online in just minutes with your email and basic
                 information.
-              </p>
-              <div class="mt-6">
+              </p>              <div class="mt-6" v-if="!authStore.isAuthenticated">
                 <router-link 
                   to="/account-selection"
                   class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
                 >
                   Get Started
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </router-link>
+              </div>
+              <div class="mt-6" v-else>
+                <router-link 
+                  :to="authStore.role === 'customer' ? '/customer/dashboard' : '/banker/dashboard'"
+                  class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                >
+                  Go to Dashboard
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
@@ -620,13 +638,20 @@
         <p class="mt-4 text-lg">
           Join thousands of satisfied customers and take control of your finances
           today.
-        </p>
-        <div class="mt-10">
+        </p>        <div class="mt-10" v-if="!authStore.isAuthenticated">
           <router-link
-            to="/customer/register"
+            to="/account-selection"
             class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-700 focus:ring-white transition-all duration-300"
           >
             Open an Account Now
+          </router-link>
+        </div>
+        <div class="mt-10" v-else>
+          <router-link
+            :to="authStore.role === 'customer' ? '/customer/dashboard' : '/banker/dashboard'"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-700 focus:ring-white transition-all duration-300"
+          >
+            Go to Dashboard
           </router-link>
         </div>
       </div>
@@ -820,7 +845,10 @@
 </template>
 
 <script setup>
-// We don't need to import specific icons since we're using inline SVGs
+import { useAuthStore } from '../stores/authStore';
+
+// Access the auth store to check login status
+const authStore = useAuthStore();
 </script>
 
 <style scoped>

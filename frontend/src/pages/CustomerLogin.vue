@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/authStore';
@@ -118,6 +118,17 @@ import { Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-vue-next';
 const router = useRouter();
 const toast = useToast();
 const authStore = useAuthStore();
+
+// Redirect authenticated users to their dashboard
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    if (authStore.isCustomer) {
+      router.replace('/customer/dashboard');
+    } else if (authStore.isBanker) {
+      router.replace('/banker/dashboard');
+    }
+  }
+});
 
 const email = ref('');
 const password = ref('');

@@ -177,11 +177,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/authStore';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const selectedType = ref('');
+
+// Redirect authenticated users to their dashboard
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    if (authStore.isCustomer) {
+      router.replace('/customer/dashboard');
+    } else if (authStore.isBanker) {
+      router.replace('/banker/dashboard');
+    }
+  }
+});
 
 const selectAccountType = (type) => {
   selectedType.value = type;
