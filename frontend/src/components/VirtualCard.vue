@@ -134,7 +134,9 @@ const lastFourDigits = computed(() => {
 const formattedCardNumber = computed(() => {
   if (props.card && props.card.card_number) {
     // Format as groups of 4 digits
-    return props.card.card_number.replace(/(\d{4})(?=\d)/g, '$1 ');
+    // First ensure we have only digits, then add spaces every 4 digits
+    const digitsOnly = props.card.card_number.replace(/\D/g, '');
+    return digitsOnly.replace(/(\d{4})(?=\d)/g, '$1 ');
   }
   return '•••• •••• •••• ••••';
 });
