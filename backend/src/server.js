@@ -70,6 +70,7 @@ const bankerRoutes = require('./routes/banker.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const depositRoutes = require('./routes/deposit.routes');
 const cardRoutes = require('./routes/card.routes');
+const chatbotRoutes = require('./routes/chatbot.routes');
 const testRoutes = require('./routes/test.routes');
 
 // Middleware to log all incoming requests
@@ -91,6 +92,8 @@ app.use('/api/cards', cardRoutes);
 app.use('/cards', cardRoutes); // Duplicate without /api prefix
 app.use('/api/deposits', depositRoutes);
 app.use('/deposits', depositRoutes); // Duplicate without /api prefix
+app.use('/api/chatbot', chatbotRoutes);
+app.use('/chatbot', chatbotRoutes); // Duplicate without /api prefix
 
 // Test routes - only enabled in development
 if (process.env.NODE_ENV !== 'production') {

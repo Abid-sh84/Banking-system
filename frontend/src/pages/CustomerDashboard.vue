@@ -1,7 +1,9 @@
 <!-- CustomerDashboard.vue -->
 <template>
   <div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">      <div v-if="loading" class="flex items-center justify-center py-12">
+    <!-- Integrate ChatBot -->
+    <ChatBot :customerData="customerData" />
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div v-if="loading" class="flex items-center justify-center py-12">
         <Loader2 class="h-12 w-12 text-primary animate-spin" />
       </div>
       
@@ -523,6 +525,7 @@ import TransactionList from '../components/TransactionList.vue'; // Add Transact
 import ExportReportModal from '../components/ExportReportModal.vue'; // Add ExportReportModal
 import TransactionFiltersModal from '../components/TransactionFiltersModal.vue'; // Add TransactionFiltersModal
 import VirtualCardSection from '../components/VirtualCardSection.vue'; // Import missing component
+import ChatBot from '../components/ChatBot.vue'; // Import ChatBot component
 import { useAuthStore } from '../stores/authStore';
 
 const authStore = useAuthStore();

@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const emailService = require('../utils/email.utils');
 
+// Simple health check endpoint
+router.get('/health-check', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    service: 'banking-api'
+  });
+});
+
 // Test email functionality
 router.post('/email', async (req, res) => {
   try {
