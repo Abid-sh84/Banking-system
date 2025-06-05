@@ -256,6 +256,353 @@ const transferMoney = asyncHandler(async (req, res) => {
   }
 });
 
+// Send account statement and personal data via email
+const sendAccountStatement = asyncHandler(async (req, res) => {
+  const { id } = req.user;
+  const { statementType } = req.body;
+    try {
+    // Get customer details
+    const customer = await CustomerModel.findById(id);
+    
+    if (!customer || !customer.email) {
+      throw new ApiError(400, 'Customer email not found');
+    }
+    
+    // Import the emailService singleton instance
+    const emailService = require('../utils/email.utils');
+    
+    let subject, content, attachmentData;
+    
+    switch (statementType) {
+      case 'account_statement':
+        // Get transactions for account statement
+        const transactions = await TransactionModel.findByCustomerId(id, 100, 0);
+        
+        subject = 'Your Modern Bank Account Statement';
+        content = generateAccountStatementEmail(customer, transactions.transactions);
+        break;
+        
+      case 'transaction_history':
+        // Get all transactions for transaction history
+        const allTransactions = await TransactionModel.findByCustomerId(id, 500, 0);
+        
+        subject = 'Your Transaction History';
+        content = generateTransactionHistoryEmail(customer, allTransactions.transactions);
+        break;
+        
+      case 'personal_data':
+        subject = 'Your Personal Data';
+        content = generatePersonalDataEmail(customer);
+        break;
+        
+      default:
+        throw new ApiError(400, 'Invalid statement type');
+    }
+    
+    // Send email
+    await emailService.sendCustomEmail({
+      to: customer.email,
+      subject,
+      html: content
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: `${statementType.replace('_', ' ')} has been sent to your email address`
+    });
+  } catch (error) {
+    console.error(`Error sending ${statementType}:`, error);
+    throw new ApiError(500, `Failed to send ${statementType}: ${error.message}`);
+  }
+});
+
+// Helper functions for generating email content
+function generateAccountStatementEmail(customer, transactions) {
+  const currentDate = new Date().toLocaleDateString('en-IN');
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - 1);
+  const formattedStartDate = startDate.toLocaleDateString('en-IN');
+  
+  // Format balance as currency
+  const formattedBalance = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR'
+  }).format(customer.balance);
+  
+  // Create transaction rows
+  const transactionRows = transactions
+    .slice(0, 20) // Take most recent 20 transactions
+    .map(tx => {
+      const date = new Date(tx.created_at).toLocaleDateString('en-IN');
+      const amount = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+      }).format(tx.amount);
+      
+      const isCredit = ['deposit', 'received'].includes(tx.type);
+      
+      return `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${date}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${tx.description || 'N/A'}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0; color: ${isCredit ? '#4CAF50' : '#f44336'}">
+            ${isCredit ? '+' : '-'}${amount}
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+  
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <div style="background-color: #3f51b5; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+        <h1 style="margin: 0;">Modern Bank Account Statement</h1>
+      </div>
+      
+      <div style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <p><strong>Statement Date:</strong> ${currentDate}</p>
+            <p><strong>Statement Period:</strong> ${formattedStartDate} - ${currentDate}</p>
+          </div>
+          <div>
+            <p><strong>Account Number:</strong> ${customer.account_number}</p>
+            <p><strong>Customer ID:</strong> ${customer.customer_id}</p>
+          </div>
+        </div>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+          <h2>Account Information</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px;"><strong>Account Holder:</strong></td>
+              <td style="padding: 8px;">${customer.name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Account Type:</strong></td>
+              <td style="padding: 8px;">${customer.account_type.charAt(0).toUpperCase() + customer.account_type.slice(1)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Current Balance:</strong></td>
+              <td style="padding: 8px;"><strong>${formattedBalance}</strong></td>
+            </tr>
+          </table>
+        </div>
+        
+        <h2>Recent Transactions</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Date</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Description</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Type</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${transactionRows || '<tr><td colspan="4" style="padding: 10px; text-align: center;">No transactions found</td></tr>'}
+          </tbody>
+        </table>
+        
+        <div style="margin-top: 30px; border-top: 1px solid #e0e0e0; padding-top: 20px;">
+          <p><strong>Note:</strong> This is an electronic statement of your account. Please review all transactions and contact us if you notice any discrepancies.</p>
+          <p>Thank you for banking with Modern Bank India.</p>
+        </div>
+      </div>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 5px 5px;">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>&copy; ${new Date().getFullYear()} Modern Bank India. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+}
+
+function generateTransactionHistoryEmail(customer, transactions) {
+  const currentDate = new Date().toLocaleDateString('en-IN');
+  
+  // Format balance as currency
+  const formattedBalance = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR'
+  }).format(customer.balance);
+  
+  // Create transaction rows
+  const transactionRows = transactions
+    .map(tx => {
+      const date = new Date(tx.created_at).toLocaleDateString('en-IN');
+      const amount = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+      }).format(tx.amount);
+      
+      const isCredit = ['deposit', 'received'].includes(tx.type);
+      
+      return `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${date}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${tx.description || 'N/A'}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0; color: ${isCredit ? '#4CAF50' : '#f44336'}">
+            ${isCredit ? '+' : '-'}${amount}
+          </td>
+          <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</td>
+        </tr>
+      `;
+    })
+    .join('');
+  
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <div style="background-color: #3f51b5; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+        <h1 style="margin: 0;">Modern Bank Transaction History</h1>
+      </div>
+      
+      <div style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <p><strong>Generated Date:</strong> ${currentDate}</p>
+          </div>
+          <div>
+            <p><strong>Account Number:</strong> ${customer.account_number}</p>
+            <p><strong>Customer ID:</strong> ${customer.customer_id}</p>
+          </div>
+        </div>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+          <h2>Account Information</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px;"><strong>Account Holder:</strong></td>
+              <td style="padding: 8px;">${customer.name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Email:</strong></td>
+              <td style="padding: 8px;">${customer.email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Current Balance:</strong></td>
+              <td style="padding: 8px;"><strong>${formattedBalance}</strong></td>
+            </tr>
+          </table>
+        </div>
+        
+        <h2>Complete Transaction History</h2>
+        <p>Transaction count: ${transactions.length}</p>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Date</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Description</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Type</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Amount</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${transactionRows || '<tr><td colspan="5" style="padding: 10px; text-align: center;">No transactions found</td></tr>'}
+          </tbody>
+        </table>
+        
+        <div style="margin-top: 30px; border-top: 1px solid #e0e0e0; padding-top: 20px;">
+          <p><strong>Note:</strong> This is a complete history of transactions for your account. Please review all transactions and contact us if you notice any discrepancies.</p>
+          <p>Thank you for banking with Modern Bank India.</p>
+        </div>
+      </div>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 5px 5px;">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>&copy; ${new Date().getFullYear()} Modern Bank India. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+}
+
+function generatePersonalDataEmail(customer) {
+  const currentDate = new Date().toLocaleDateString('en-IN');
+  const joinDate = new Date(customer.created_at).toLocaleDateString('en-IN');
+  
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <div style="background-color: #3f51b5; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+        <h1 style="margin: 0;">Modern Bank Personal Data</h1>
+      </div>
+      
+      <div style="padding: 20px;">
+        <div style="text-align: right; margin-bottom: 20px;">
+          <p><strong>Generated Date:</strong> ${currentDate}</p>
+        </div>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+          <h2>Personal Information</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px;"><strong>Full Name:</strong></td>
+              <td style="padding: 8px;">${customer.name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Email Address:</strong></td>
+              <td style="padding: 8px;">${customer.email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Phone Number:</strong></td>
+              <td style="padding: 8px;">${customer.phone || 'Not provided'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Address:</strong></td>
+              <td style="padding: 8px;">${customer.address || 'Not provided'}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+          <h2>Account Information</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px;"><strong>Customer ID:</strong></td>
+              <td style="padding: 8px;">${customer.customer_id}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Account Number:</strong></td>
+              <td style="padding: 8px;">${customer.account_number}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Account Type:</strong></td>
+              <td style="padding: 8px;">${customer.account_type.charAt(0).toUpperCase() + customer.account_type.slice(1)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Current Balance:</strong></td>
+              <td style="padding: 8px;">${new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR'
+              }).format(customer.balance)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Account Status:</strong></td>
+              <td style="padding: 8px;">${customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px;"><strong>Account Created On:</strong></td>
+              <td style="padding: 8px;">${joinDate}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="margin-top: 30px; border-top: 1px solid #e0e0e0; padding-top: 20px;">
+          <p><strong>Privacy Notice:</strong> This data is provided to you in accordance with your rights under data protection regulations. Please keep this information secure.</p>
+          <p>Thank you for banking with Modern Bank India.</p>
+        </div>
+      </div>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 5px 5px;">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>&copy; ${new Date().getFullYear()} Modern Bank India. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+}
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -264,5 +611,6 @@ module.exports = {
   getTransactionById,
   createTransaction,
   findRecipient,
-  transferMoney
+  transferMoney,
+  sendAccountStatement
 };

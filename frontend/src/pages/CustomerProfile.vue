@@ -1249,16 +1249,43 @@ const saveNotificationPreferences = async () => {
 };
 
 // Data export functions
-const exportAccountStatements = () => {
-  toast.info('Account statements will be emailed to your registered email address');
+const exportAccountStatements = async () => {
+  try {
+    toast.info('Preparing your account statement...');
+    const response = await api.post('/customers/account-statement', {
+      statementType: 'account_statement'
+    });
+    toast.success(response.data.message || 'Account statement has been sent to your registered email address');
+  } catch (error) {
+    console.error('Error exporting account statements:', error);
+    toast.error('Failed to send account statement. Please try again later.');
+  }
 };
 
-const exportTransactionHistory = () => {
-  toast.info('Transaction history will be emailed to your registered email address');
+const exportTransactionHistory = async () => {
+  try {
+    toast.info('Preparing your transaction history...');
+    const response = await api.post('/customers/account-statement', {
+      statementType: 'transaction_history'
+    });
+    toast.success(response.data.message || 'Transaction history has been sent to your registered email address');
+  } catch (error) {
+    console.error('Error exporting transaction history:', error);
+    toast.error('Failed to send transaction history. Please try again later.');
+  }
 };
 
-const exportPersonalData = () => {
-  toast.info('Your personal data will be emailed to your registered email address');
+const exportPersonalData = async () => {
+  try {
+    toast.info('Preparing your personal data...');
+    const response = await api.post('/customers/account-statement', {
+      statementType: 'personal_data'
+    });
+    toast.success(response.data.message || 'Personal data has been sent to your registered email address');
+  } catch (error) {
+    console.error('Error exporting personal data:', error);
+    toast.error('Failed to send personal data. Please try again later.');
+  }
 };
 
 const handleSignOutAllSessions = async () => {

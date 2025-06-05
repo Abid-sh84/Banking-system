@@ -168,6 +168,63 @@ class EmailService {  constructor() {
       // Just log it and continue
     }
   }
+  /**
+   * Send a custom email with HTML content
+   * @param {Object} emailData - Email data including recipient, subject, and HTML content
+   * @returns {Promise} - Promise that resolves when email is sent
+   */
+  async sendCustomEmail(emailData) {
+    try {
+      console.log('Attempting to send custom email');
+      
+      // Check for valid email data
+      if (!emailData || !emailData.to || !emailData.to.trim()) {
+        console.error('Missing recipient email address:', emailData?.to);
+        return { success: false, error: 'Missing recipient email' };
+      }
+      
+      const { to, subject, html } = emailData;
+      console.log(`Sending ${subject} email to: ${to}`);
+      
+      // Send email
+      const mailOptions = {
+        from: process.env.EMAIL_FROM,
+        to,
+        subject,
+        html
+      };
+      
+      console.log('Sending custom email with options:', {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject
+      });
+      
+      try {
+        const info = await this.transporter.sendMail(mailOptions);
+        console.log('Custom email sent successfully:', info);
+        return info;
+      } catch (emailError) {
+        console.error('Nodemailer error details:', emailError);
+        throw emailError;  // Re-throw for better debugging
+      }
+    } catch (error) {
+      console.error('Email sending error:', error);
+      // Log all available transport configuration for debugging
+      console.error('Transporter configuration:', {
+        service: process.env.EMAIL_SERVICE,
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: '********' // Password masked for security
+        }
+      });
+      // Don't throw error to prevent transaction failure if email fails
+      // Just log it and continue
+    }
+  }
 
   /**
    * Test the email configuration by sending a test email

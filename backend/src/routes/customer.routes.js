@@ -8,7 +8,8 @@ const {
   getTransactionById,
   createTransaction,
   findRecipient,
-  transferMoney
+  transferMoney,
+  sendAccountStatement
 } = require('../controllers/customer.controller');
 const { getCustomerCibilScore } = require('../controllers/cibil.controller');
 const { authenticate, authorize, checkUserStatus } = require('../middleware/auth.middleware');
@@ -51,6 +52,16 @@ const transferSchema = {
   }
 };
 
+const accountStatementSchema = {
+  required: ['statementType'],
+  properties: {
+    statementType: { 
+      type: 'string', 
+      enum: ['account_statement', 'transaction_history', 'personal_data']
+    }
+  }
+};
+
 // Apply middleware to all routes
 router.use(authenticate);
 router.use(authorize('customer'));
@@ -66,5 +77,6 @@ router.post('/transactions', validateRequest(createTransactionSchema), createTra
 router.get('/find-recipient', findRecipient);
 router.post('/transfer', validateRequest(transferSchema), transferMoney);
 router.get('/cibil-score', getCustomerCibilScore);
+router.post('/account-statement', validateRequest(accountStatementSchema), sendAccountStatement);
 
 module.exports = router;
