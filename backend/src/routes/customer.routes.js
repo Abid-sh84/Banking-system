@@ -9,7 +9,8 @@ const {
   createTransaction,
   findRecipient,
   transferMoney,
-  sendAccountStatement
+  sendAccountStatement,
+  signOutAllSessions
 } = require('../controllers/customer.controller');
 const { getCustomerCibilScore } = require('../controllers/cibil.controller');
 const { authenticate, authorize, checkUserStatus } = require('../middleware/auth.middleware');
@@ -78,5 +79,6 @@ router.get('/find-recipient', findRecipient);
 router.post('/transfer', validateRequest(transferSchema), transferMoney);
 router.get('/cibil-score', getCustomerCibilScore);
 router.post('/account-statement', validateRequest(accountStatementSchema), sendAccountStatement);
+router.post('/signout-all-sessions', signOutAllSessions);
 
 module.exports = router;

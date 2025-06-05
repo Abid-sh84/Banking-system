@@ -31,7 +31,7 @@ const generateToken = (payload, expiresIn = '24h') => {
 };
 
 // Verify JWT token with the same fallback secret as generateToken
-const verifyToken = (token) => {
+const verifyToken = async (token) => {
   try {
     // Use the same secret (with fallback) as token generation
     const secret = process.env.JWT_SECRET || 'e1f4cf15351809c2e2d5b22016ee8be8224bcc104b4150b4b1d0e507f6b697c9';
@@ -48,6 +48,28 @@ const verifyToken = (token) => {
     }
     
     const decoded = jwt.verify(token, secret);
+    
+    // Check token version for customer role
+    if (decoded.role === 'customer' && decoded.token_version !== undefined) {
+      const { pool, query } = require('../config/db.config');
+      // Get current token version from database
+      const result = await query(
+        'SELECT token_version FROM customers WHERE id = $1',
+        [decoded.id]
+      );
+      
+      if (result.rows.length === 0) {
+        throw new ApiError(404, 'Customer not found');
+      }
+      
+      const currentTokenVersion = result.rows[0].token_version || 0;
+      
+      // If token version doesn't match, token has been invalidated
+      if (decoded.token_version !== currentTokenVersion) {
+        throw new ApiError(401, 'Token has been invalidated');
+      }
+    }
+    
     return decoded;
   } catch (error) {
     console.error('Token verification error:', error.message);

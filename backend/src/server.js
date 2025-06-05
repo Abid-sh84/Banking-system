@@ -164,6 +164,10 @@ app.listen(PORT, async () => {
       const { createOtpTable } = require('./config/db.otp');
       await createOtpTable();
       
+      // Add token_version column for session management
+      const { addTokenVersionColumn } = require('./config/db.token_version');
+      await addTokenVersionColumn();
+      
       console.log('Database schema updated successfully');
     } catch (error) {
       console.error('Error updating database schema:', error);

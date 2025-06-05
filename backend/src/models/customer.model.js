@@ -570,6 +570,39 @@ class CustomerModel {  // Create a new customer
       client.release();
     }
   }
+    // Invalidate all tokens for a customer by updating token version
+  static async invalidateAllTokens(id) {
+    try {
+      // Get current token version
+      const result = await query(
+        'SELECT token_version FROM customers WHERE id = $1',
+        [id]
+      );
+      
+      if (result.rows.length === 0) {
+        throw new ApiError(404, 'Customer not found');
+      }
+      
+      // Increment token version to invalidate all existing tokens
+      const currentVersion = result.rows[0].token_version || 0;
+      const newVersion = currentVersion + 1;
+      
+      await query(
+        'UPDATE customers SET token_version = $1, updated_at = NOW() WHERE id = $2',
+        [newVersion, id]
+      );
+      
+      return { 
+        success: true, 
+        message: 'All sessions invalidated successfully',
+        token_version: newVersion
+      };
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      console.error('Error invalidating tokens:', error);
+      throw new ApiError(500, `Error invalidating tokens: ${error.message}`);
+    }
+  }
 }
 
 module.exports = CustomerModel;

@@ -224,7 +224,8 @@ export const customerService = {
   changePassword: (data) => api.post('/customers/change-password', data),
   getTransactions: (params) => api.get('/customers/transactions', { params }),
   getTransaction: (id) => api.get(`/customers/transactions/${id}`),
-  createTransaction: (data) => api.post('/customers/transactions', data)
+  createTransaction: (data) => api.post('/customers/transactions', data),
+  signOutAllSessions: () => api.post('/customers/signout-all-sessions')
 };
 
 // Banker services - consistent paths based on our baseURL

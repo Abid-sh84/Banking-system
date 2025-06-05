@@ -24,8 +24,8 @@ const authenticate = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    // Verify token
-    const decoded = verifyToken(token);
+    // Verify token - now verifyToken is async to check token version
+    const decoded = await verifyToken(token);
     console.log('Token verified successfully for user:', {
       id: decoded.id,
       role: decoded.role
@@ -36,7 +36,12 @@ const authenticate = asyncHandler(async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Token verification failed:', error.message);
-    throw new ApiError(401, 'Invalid or expired token. Please login again.');
+    // Check if the error is due to invalidated token
+    if (error.message.includes('invalidated')) {
+      throw new ApiError(401, 'Session expired. Please login again.');
+    } else {
+      throw new ApiError(401, 'Invalid or expired token. Please login again.');
+    }
   }
 });
 

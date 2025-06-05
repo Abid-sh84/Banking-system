@@ -867,6 +867,7 @@ const profilePhotoFile = ref(null); // For profile photo upload
 const showPasswordModal = ref(false); // For password change modal
 const accountActivity = ref([]); // For account activity
 const loadingActivity = ref(false); // Loading state for activity
+const changingPassword = ref(false); // Loading state for password change
 const passwordData = ref({ // Password change data
   currentPassword: '',
   newPassword: '',
@@ -925,41 +926,60 @@ const fetchAccountActivity = async () => {
   try {
     loadingActivity.value = true;
     
-    // In a real app, you would fetch from an API endpoint
-    // For now, we'll simulate with mock data
-    const mockActivity = [
-      {
-        type: 'login',
-        description: 'Account login',
-        details: 'Login from Chrome browser on Windows',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15) // 15 minutes ago
-      },
-      {
-        type: 'profile_update',
-        description: 'Profile updated',
-        details: 'Phone number updated',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2) // 2 hours ago
-      },
-      {
-        type: 'deposit',
-        description: 'Deposit',
-        details: 'Deposit via NEFT',
-        amount: 25000,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24) // 1 day ago
-      },
-      {
-        type: 'withdrawal',
-        description: 'ATM Withdrawal',
-        details: 'Withdrawal from ATM at Main St.',
-        amount: 5000,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2) // 2 days ago
+    // Fetch real transaction data from the API
+    const response = await api.get('/customers/transactions', {
+      params: {
+        limit: 5, // Only get the 5 most recent transactions
+        offset: 0
       }
-    ];
+    });
     
-    accountActivity.value = mockActivity;
+    if (response.data && response.data.data) {
+      // Transform the transaction data into activity format
+      accountActivity.value = response.data.data.map(transaction => {
+        let activityType, description, details;
+        
+        switch(transaction.type) {
+          case 'deposit':
+            activityType = 'deposit';
+            description = 'Deposit';
+            details = transaction.description || 'Money deposited to account';
+            break;
+          case 'withdrawal':
+            activityType = 'withdrawal';
+            description = 'Withdrawal';
+            details = transaction.description || 'Money withdrawn from account';
+            break;
+          case 'transfer':
+            // Check if user is sender or receiver
+            if (transaction.receiver_id) {
+              activityType = 'transfer_out';
+              description = 'Money Sent';
+              details = `Transfer to ${transaction.receiver_name || 'Account'} (${transaction.receiver_account_number || 'Unknown'})`;
+            } else {
+              activityType = 'transfer_in';
+              description = 'Money Received';
+              details = `Transfer from ${transaction.sender_name || 'Account'} (${transaction.sender_account_number || 'Unknown'})`;
+            }
+            break;
+          default:
+            activityType = 'account_update';
+            description = transaction.description || 'Account Activity';
+            details = 'Account transaction';
+        }
+        
+        return {
+          type: activityType,
+          description: description,
+          details: details,
+          amount: transaction.amount,
+          timestamp: new Date(transaction.created_at)
+        };
+      });
+    }
   } catch (error) {
     console.error('Error fetching account activity:', error);
-    toast.error('Failed to load account activity.');
+    toast.error('Failed to load account activity. Please try again.');
   } finally {
     loadingActivity.value = false;
   }
@@ -1207,19 +1227,33 @@ const changePassword = async () => {
       return;
     }
     
-    // In a real app, you would call the API to change the password
-    // Simulating API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    changingPassword.value = true;
+    
+    // Call the real API to change password
+    await api.post('/customers/change-password', {
+      currentPassword: passwordData.value.currentPassword,
+      newPassword: passwordData.value.newPassword
+    });
     
     toast.success('Password updated successfully');
     closePasswordModal();
     
-    // In real app: Update password_changed_at in profile
-    profile.value.password_changed_at = new Date().toISOString();
-    
+    // Reset password form
+    passwordData.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    };
   } catch (error) {
     console.error('Error changing password:', error);
-    toast.error('Failed to update password. Please try again.');
+    // Show appropriate error message based on the error
+    if (error.response && error.response.status === 401) {
+      toast.error('Current password is incorrect');
+    } else {
+      toast.error('Failed to update password. Please try again.');
+    }
+  } finally {
+    changingPassword.value = false;
   }
 };
 
@@ -1290,13 +1324,20 @@ const exportPersonalData = async () => {
 
 const handleSignOutAllSessions = async () => {
   try {
-    // API call would go here
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Call the real API endpoint
+    const response = await api.post('/customers/signout-all-sessions');
+    
+    // If successful, update the token in localStorage and auth store
+    if (response.data && response.data.token) {
+      // Update token in localStorage
+      localStorage.setItem('token', response.data.token);
+      
+      // Update token in auth store
+      const authStore = useAuthStore();
+      authStore.token = response.data.token;
+    }
     
     toast.success('Signed out from all other devices');
-    
-    // In a real app, you might want to get a new token
-    // and update the auth store
   } catch (error) {
     console.error('Error signing out sessions:', error);
     toast.error('Failed to sign out from all devices');

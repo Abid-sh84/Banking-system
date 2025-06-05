@@ -1,6 +1,7 @@
 const CustomerModel = require('../models/customer.model');
 const TransactionModel = require('../models/transaction.model');
 const { ApiError, asyncHandler } = require('../utils/error.utils');
+const { generateToken } = require('../utils/jwt.utils');
 
 // Get customer profile
 const getProfile = asyncHandler(async (req, res) => {
@@ -316,6 +317,33 @@ const sendAccountStatement = asyncHandler(async (req, res) => {
   }
 });
 
+// Sign out from all devices
+const signOutAllSessions = asyncHandler(async (req, res) => {
+  const { id } = req.user;
+  
+  try {
+    // Invalidate all tokens by incrementing the token version
+    const result = await CustomerModel.invalidateAllTokens(id);
+    
+    // Generate a new token with the updated token version
+    const newToken = generateToken({
+      id,
+      role: 'customer',
+      token_version: result.token_version
+    });
+    
+    // Return success response with the new token
+    res.status(200).json({
+      success: true,
+      message: 'Signed out from all other devices',
+      token: newToken
+    });
+  } catch (error) {
+    console.error('Error signing out all sessions:', error);
+    throw new ApiError(500, `Error signing out all sessions: ${error.message}`);
+  }
+});
+
 // Helper functions for generating email content
 function generateAccountStatementEmail(customer, transactions) {
   const currentDate = new Date().toLocaleDateString('en-IN');
@@ -612,5 +640,6 @@ module.exports = {
   createTransaction,
   findRecipient,
   transferMoney,
-  sendAccountStatement
+  sendAccountStatement,
+  signOutAllSessions
 };
