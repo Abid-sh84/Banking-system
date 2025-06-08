@@ -4,25 +4,23 @@ const { ApiError } = require('./error.utils');
 /**
  * Email service for sending notifications
  */
-class EmailService {  constructor() {
-    // Log email configuration (without sensitive data)
+class EmailService {  constructor() {    // Log email configuration (without sensitive data)
     console.log('Initializing email service with settings:');
-    console.log('- SERVICE:', process.env.EMAIL_SERVICE || 'gmail');
-    console.log('- HOST:', process.env.EMAIL_HOST || 'smtp.gmail.com');
-    console.log('- PORT:', process.env.EMAIL_PORT || 465);
-    console.log('- SECURE:', process.env.EMAIL_SECURE || 'true');
-    console.log('- USER:', process.env.EMAIL_USER || 'undefined');
-    console.log('- FROM:', process.env.EMAIL_FROM || 'undefined');
-    
-    // Hardcoded default values as fallback
+    console.log('- SERVICE:', process.env.EMAIL_SERVICE);
+    console.log('- HOST:', process.env.EMAIL_HOST);
+    console.log('- PORT:', process.env.EMAIL_PORT);
+    console.log('- SECURE:', process.env.EMAIL_SECURE);
+    console.log('- USER:', process.env.EMAIL_USER);
+    console.log('- FROM:', process.env.EMAIL_FROM);
+      // Environment variables for email configuration
     this.transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      service: process.env.EMAIL_SERVICE,
+      host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT || '465'),
       secure: process.env.EMAIL_SECURE !== 'false', // Default to true
       auth: {
-        user: process.env.EMAIL_USER || 'technoabid.dev@gmail.com',
-        pass: process.env.EMAIL_PASSWORD || 'smztgueklsboptqp'
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
       }
     });
   }

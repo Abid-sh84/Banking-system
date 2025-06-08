@@ -91,10 +91,9 @@ class BankerModel {
       if (existingBankers.rows.length > 0) {
         throw new ApiError(409, 'Email already exists');
       }
-      
-      // Hash the password
+        // Hash the password
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(process.env.BANKER_PASSWORD, salt);
+      const hashedPassword = await bcrypt.hash(process.env.BANKER_PASSWORD || password, salt);
       
       // Insert banker
       const result = await query(

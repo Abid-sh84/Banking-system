@@ -1,12 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { ApiError } = require('./error.utils');
 
-// Generate JWT token with hardcoded fallback secret
+// Generate JWT token from environment variable
 const generateToken = (payload, expiresIn = '24h') => {
   try {
-    // Get JWT_SECRET with fallback
-    const secret = process.env.JWT_SECRET || 'e1f4cf15351809c2e2d5b22016ee8be8224bcc104b4150b4b1d0e507f6b697c9';
-    
+    // Get JWT_SECRET from environment variable
+    const secret = process.env.JWT_SECRET;
     console.log('JWT_SECRET check:', {
       envVariableExists: !!process.env.JWT_SECRET,
       usingFallback: !process.env.JWT_SECRET,

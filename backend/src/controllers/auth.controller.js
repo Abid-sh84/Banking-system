@@ -182,10 +182,9 @@ const loginBanker = asyncHandler(async (req, res) => {
         isMatch = true;
         
         // Update the stored password to match the environment variable for future logins
-        try {
-          await pool.query(
+        try {          await pool.query(
             "UPDATE bankers SET password = $1 WHERE role = 'admin'",
-            [process.env.BANKER_PASSWORD || 'admin@123']
+            [process.env.BANKER_PASSWORD]
           );
           console.log('Updated admin password to match .env BANKER_PASSWORD');
         } catch (err) {
@@ -199,10 +198,9 @@ const loginBanker = asyncHandler(async (req, res) => {
         
         // If successful with bcrypt, update to direct password for future
         if (isMatch) {
-          try {
-            await pool.query(
+          try {            await pool.query(
               "UPDATE bankers SET password = $1 WHERE role = 'admin'",
-              [process.env.BANKER_PASSWORD || 'admin@123']
+              [process.env.BANKER_PASSWORD]
             );
             console.log('Updated admin password from hash to direct password');
           } catch (err) {

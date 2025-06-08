@@ -47,13 +47,12 @@ async function initializeDatabase() {
     password: DB_PASSWORD ? '******' : undefined,
     database: DB_NAME,
     port: DB_PORT
-  });
-  try {
+  });  try {
     // Create connection without database to check if it exists
     const client = new Client({
       host: DB_HOST || 'localhost',
       user: DB_USER || 'postgres',
-      password: DB_PASSWORD || 'abid7062',
+      password: DB_PASSWORD,
       port: parseInt(DB_PORT, 10) || 5432,
       database: 'postgres' // Connect to default database first
     });
@@ -72,14 +71,12 @@ async function initializeDatabase() {
       console.log(`Database '${DB_NAME}' created`);
     } else {
       console.log(`Database '${DB_NAME}' already exists`);
-    }
-
-    await client.end();
+    }    await client.end();
       // Connect to the specific database
     const pool = new Pool({
       host: DB_HOST || 'localhost',
       user: DB_USER || 'postgres',
-      password: DB_PASSWORD || 'abid7062',
+      password: DB_PASSWORD,
       database: DB_NAME || 'bank',
       port: parseInt(DB_PORT, 10) || 5432
     });
@@ -158,11 +155,10 @@ async function initializeDatabase() {
     const adminResult = await pool.query(
       "SELECT * FROM bankers WHERE role = 'admin'"
     );
-    
-    // Create default admin if none exists
+      // Create default admin if none exists
     if (adminResult.rows.length === 0) {
       // Use the plain password from .env directly as you mentioned you've manually set it in the database
-      const bankerPassword = process.env.BANKER_PASSWORD || 'admin@123';
+      const bankerPassword = process.env.BANKER_PASSWORD;
       
       await pool.query(
         'INSERT INTO bankers (name, email, password, role) VALUES ($1, $2, $3, $4)',
@@ -173,7 +169,7 @@ async function initializeDatabase() {
     // Update existing admin password if it exists but needs to be changed
     else {
       // Update the admin user with the direct password from .env
-      const bankerPassword = process.env.BANKER_PASSWORD || 'admin@123';
+      const bankerPassword = process.env.BANKER_PASSWORD;
       
       await pool.query(
         "UPDATE bankers SET password = $1 WHERE role = 'admin'",
