@@ -70,10 +70,19 @@ const verifyToken = async (token) => {
       }
     }
     
-    return decoded;
-  } catch (error) {
+    return decoded;  } catch (error) {
     console.error('Token verification error:', error.message);
-    throw new ApiError(401, 'Invalid or expired token');
+    console.error('Token verification error details:', error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      throw new ApiError(401, 'Invalid token. Please log in again.');
+    } else if (error.name === 'TokenExpiredError') {
+      throw new ApiError(401, 'Token has expired. Please log in again.');
+    } else if (error instanceof ApiError) {
+      throw error;
+    } else {
+      throw new ApiError(401, 'Authentication failed. Please log in again.');
+    }
   }
 };
 

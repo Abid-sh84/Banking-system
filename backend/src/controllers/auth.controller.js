@@ -77,7 +77,12 @@ const loginCustomer = asyncHandler(async (req, res) => {
     
     console.log('Finding customer by email:', email);
     // Find customer by email
-    const customer = await CustomerModel.findByEmail(email);    console.log('Customer found:', { id: customer.id, status: customer.status });
+    const customer = await CustomerModel.findByEmail(email);    console.log('Customer found:', { 
+      id: customer.id, 
+      status: customer.status,
+      token_version: customer.token_version,
+      email: customer.email
+    });
     
     // Check customer status
     if (customer.status === 'inactive') {
@@ -91,21 +96,25 @@ const loginCustomer = asyncHandler(async (req, res) => {
       console.log('Customer account has invalid status:', customer.status);
       throw new ApiError(403, 'Your account status is invalid. Please contact bank support.');
     }
-    
-    // Check password
+      // Check password
     console.log('Comparing password with hash');
+    console.log(`Password hash in database (first 10 chars): ${customer.password.substring(0, 10)}...`);
     const isMatch = await bcrypt.compare(password, customer.password);
     console.log('Password match:', isMatch);
     
     if (!isMatch) {
-      throw new ApiError(401, 'Invalid credentials');
+      console.log('Password match failed - comparing entered password with stored hash');
     }
     
-    // Generate token
+    if (!isMatch) {
+      throw new ApiError(401, 'Invalid credentials');
+    }
+      // Generate token
     console.log('Generating token for customer:', customer.id);
     const token = generateToken({
       id: customer.id,
-      role: 'customer'
+      role: 'customer',
+      token_version: customer.token_version || 0
     });
     
     // Remove sensitive data
@@ -295,12 +304,19 @@ const refreshToken = asyncHandler(async (req, res) => {
     // Verify the token
     const decoded = verifyToken(token);
     console.log('Current token verified for user ID:', decoded.id);
-    
-    // Generate a new token with the same payload but new expiration
-    const newToken = generateToken({
+      // Generate a new token with the same payload but new expiration
+    // Include token_version if it was in the original token
+    const tokenPayload = {
       id: decoded.id,
       role: decoded.role
-    });
+    };
+    
+    // If the token had a token_version, include it
+    if (decoded.token_version !== undefined) {
+      tokenPayload.token_version = decoded.token_version;
+    }
+    
+    const newToken = generateToken(tokenPayload);
     
     // Set cookie
     res.cookie('token', newToken, {
@@ -323,32 +339,55 @@ const refreshToken = asyncHandler(async (req, res) => {
 });
 
 // Verify OTP for customer registration - Step 2: Create account after OTP verification
-const verifyRegistrationOTP = asyncHandler(async (req, res) => {
-  const { email, otp } = req.body;
+const verifyRegistrationOTP = asyncHandler(async (req, res) => {  const { email, otp } = req.body;
   
   if (!email || !otp) {
     throw new ApiError(400, 'Email and OTP are required');
   }
   
+  console.log(`Verifying OTP for email: ${email}`);
   const OTPService = require('../utils/otp.utils');
-  
-  // Verify the OTP
+    // Verify the OTP
   const userData = await OTPService.verifyOTP(email, otp);
+  console.log('OTP verification successful, retrieved user data');
   
-  // Create the customer account
-  const newCustomer = await CustomerModel.create({
-    name: userData.name,
-    email: userData.email,
-    password: userData.password, // Password is already hashed from the OTP service
-    address: userData.address,
-    phone: userData.phone,
-    accountType: userData.accountType
-  });
+  // Use the already hashed password directly in the database creation
+  // instead of letting CustomerModel.create hash it again
+  const pool = require('../config/db.config').pool;
+  
+  // Generate account number and customer ID
+  const accountNumber = Math.floor(10000000000 + Math.random() * 90000000000).toString();
+  const customerId = 'CUST' + Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    // Insert directly into the database without rehashing the password
+  console.log('Using direct insertion to avoid double-hashing the password');
+  // Log only the first few characters of the hash to verify it's a bcrypt hash
+  console.log(`Using hashed password from OTP record (first 10 chars): ${userData.password.substring(0, 10)}...`);
+  
+  const customerResult = await pool.query(
+    'INSERT INTO customers (name, email, password, address, phone, account_number, customer_id, balance, status, account_type, token_version) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+    [
+      userData.name,
+      userData.email,
+      userData.password, // Use the already hashed password
+      userData.address,
+      userData.phone,
+      accountNumber,
+      customerId,
+      0,
+      'active',
+      userData.accountType || 'savings',
+      0
+    ]
+  );
+  
+  // Get the new customer
+  const newCustomer = customerResult.rows[0];
   
   // Generate token
   const token = generateToken({
     id: newCustomer.id,
-    role: 'customer'
+    role: 'customer',
+    token_version: 0 // Initialize token_version for new customers
   });
   
   // Remove sensitive data

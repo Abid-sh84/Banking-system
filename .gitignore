@@ -19,6 +19,7 @@ backend/node_modules/
 
 # Ignore .env   new
 backend/.env
+backend/ca.crt
 frontend/.env
 backend/vercel.json
 frontend/vercel.json

@@ -49,7 +49,13 @@ const dbConfig = {
   database: process.env.DB_NAME || 'bank',
   port: parseInt(process.env.DB_PORT, 10) || 5432, // Default PostgreSQL port
   max: 10, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000 // Close idle clients after 30 seconds
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  ssl: process.env.DB_SSL === 'true' ? {
+    rejectUnauthorized: true,
+    ca: fs.existsSync(path.resolve(path.join(__dirname, '../../', process.env.DB_CA_PATH || 'ca.crt'))) ? 
+        fs.readFileSync(path.resolve(path.join(__dirname, '../../', process.env.DB_CA_PATH || 'ca.crt'))).toString() : 
+        undefined
+  } : false
 };
 
 // Create connection pool with environment variables
@@ -61,7 +67,8 @@ const cleanConfig = {
   database: dbConfig.database,
   port: parseInt(dbConfig.port, 10) || 5432,
   max: dbConfig.max,
-  idleTimeoutMillis: dbConfig.idleTimeoutMillis
+  idleTimeoutMillis: dbConfig.idleTimeoutMillis,
+  ssl: dbConfig.ssl
 };
 
 // Log the clean config (without password)

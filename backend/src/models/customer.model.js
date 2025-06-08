@@ -28,20 +28,19 @@ class CustomerModel {  // Create a new customer
       // Generate a unique customer ID with prefix CUST and 10 random digits
       const customerId = 'CUST' + Math.floor(1000000000 + Math.random() * 9000000000).toString();
         // Get account type from customer data or default to savings
-      const accountType = customerData.accountType || 'savings';
-        // Insert customer with initial balance of 0 - using lowercase status to match DB constraint
+      const accountType = customerData.accountType || 'savings';      // Insert customer with initial balance of 0 and token_version of 0
       const result = await query(
-        'INSERT INTO customers (name, email, password, address, phone, account_number, customer_id, balance, status, account_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
-        [name, email, hashedPassword, address, phone, accountNumber, customerId, 0, 'active', accountType]
+        'INSERT INTO customers (name, email, password, address, phone, account_number, customer_id, balance, status, account_type, token_version) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
+        [name, email, hashedPassword, address, phone, accountNumber, customerId, 0, 'active', accountType, 0]
       );
-      
-      return {
+        return {
         id: result.rows[0].id,
         name,
         email,
         account_number: accountNumber,
         balance: 0,
-        status: 'active'
+        status: 'active',
+        token_version: 0
       };
     } catch (error) {
       if (error instanceof ApiError) throw error;

@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const emailService = require('../utils/email.utils');
+const { pool } = require('../config/db.config');
+const bcrypt = require('bcrypt');
+const { ApiError, asyncHandler } = require('../utils/error.utils');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 // Simple health check endpoint
 router.get('/health-check', (req, res) => {
@@ -11,6 +15,91 @@ router.get('/health-check', (req, res) => {
     service: 'banking-api'
   });
 });
+
+// Test user password validation - for diagnostic purposes only, requires admin authentication
+router.post('/verify-password', authenticate, authorize('admin'), asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  
+  if (!email || !password) {
+    throw new ApiError(400, 'Email and password are required');
+  }
+  
+  // Get the user from database
+  const result = await pool.query(
+    'SELECT id, password FROM customers WHERE email = $1',
+    [email]
+  );
+  
+  if (result.rows.length === 0) {
+    throw new ApiError(404, 'User not found');
+  }
+  
+  const user = result.rows[0];
+  const storedHash = user.password;
+  
+  // Check if the password is directly a bcrypt hash (single-hashed)
+  const isMatchDirect = await bcrypt.compare(password, storedHash);
+  
+  // Try double-hashing and comparing
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+  const isMatchDoubleHash = await bcrypt.compare(hashedPassword, storedHash);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Password verification results',
+    data: {
+      userId: user.id,
+      isDirectMatch: isMatchDirect,
+      isDoubleHashMatch: isMatchDoubleHash,
+      hashType: isMatchDirect ? 'Single hash (correct)' : 
+                isMatchDoubleHash ? 'Double hash (problematic)' : 
+                'Unknown hash format',
+      recommendation: isMatchDirect ? 'No action needed' : 
+                      isMatchDoubleHash ? 'Reset user password to fix double-hashing' :
+                      'Reset user password as hash format is unknown'
+    }
+  });
+}));
+
+// Admin helper to reset password for a user with double-hashed password
+router.post('/fix-double-hashed-password', authenticate, authorize('admin'), asyncHandler(async (req, res) => {
+  const { email, newPassword } = req.body;
+  
+  if (!email || !newPassword) {
+    throw new ApiError(400, 'Email and new password are required');
+  }
+  
+  // Get the user from database
+  const userResult = await pool.query(
+    'SELECT id FROM customers WHERE email = $1',
+    [email]
+  );
+  
+  if (userResult.rows.length === 0) {
+    throw new ApiError(404, 'User not found');
+  }
+  
+  const userId = userResult.rows[0].id;
+  
+  // Hash the new password (single hash)
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(newPassword, salt);
+  
+  // Update the user's password
+  await pool.query(
+    'UPDATE customers SET password = $1, updated_at = NOW() WHERE id = $2',
+    [hashedPassword, userId]
+  );
+  
+  res.status(200).json({
+    success: true,
+    message: `Password reset successful for user: ${email}`,
+    data: {
+      userId
+    }
+  });
+}));
 
 // Test email functionality
 router.post('/email', async (req, res) => {
