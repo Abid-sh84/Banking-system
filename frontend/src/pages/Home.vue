@@ -7,7 +7,7 @@
           alt="Banking background pattern"
         />
       </div>
-      <!-- Floating security badge -->
+      <!-- Floating security badge icon -->
       <div class="hidden lg:block absolute top-10 right-10 bg-white/90 text-gray-900 p-3 rounded-lg shadow-xl backdrop-blur-sm z-20 animate-pulse">
         <div class="flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
