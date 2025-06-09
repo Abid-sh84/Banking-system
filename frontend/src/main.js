@@ -50,6 +50,23 @@ const router = createRouter({
       component: CustomerDetails,
       meta: { requiresAuth: true, role: 'banker' }
     },
+    // Footer Pages - About & Company
+    { path: '/about-us', component: () => import('./pages/AboutUs.vue') },
+    { path: '/careers', component: () => import('./pages/Careers.vue') },
+    { path: '/contact', component: () => import('./pages/Contact.vue') },
+    { path: '/blog', component: () => import('./pages/Blog.vue') },
+    
+    // Product Pages
+    { path: '/products/savings-accounts', component: () => import('./pages/products/SavingsAccounts.vue') },
+    { path: '/products/fixed-deposits', component: () => import('./pages/products/FixedDeposits.vue') },
+    { path: '/products/loans', component: () => import('./pages/products/Loans.vue') },
+    { path: '/products/credit-cards', component: () => import('./pages/products/CreditCards.vue') },
+    
+    // Legal Pages
+    { path: '/privacy-policy', component: () => import('./pages/PrivacyPolicy.vue') },
+    { path: '/terms-of-service', component: () => import('./pages/TermsOfService.vue') },
+    { path: '/security', component: () => import('./pages/Security.vue') },
+    
     { path: '/:pathMatch(.*)*', component: NotFound }
   ]
 });

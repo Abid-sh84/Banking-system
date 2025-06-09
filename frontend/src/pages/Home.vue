@@ -667,113 +667,107 @@
             <p class="text-gray-400 text-sm">
               Secure, reliable banking for modern India.
             </p>
-          </div>
-
-          <!-- Quick Links -->
+          </div>          <!-- Quick Links -->
           <div>
             <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
             <ul class="space-y-2 text-sm text-gray-400">
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/about-us"
                   class="hover:text-white transition-colors duration-200"
                 >
                   About Us
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/careers"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Careers
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/contact"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Contact
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/blog"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Blog
-                </a>
+                </router-link>
               </li>
             </ul>
-          </div>
-
-          <!-- Products -->
+          </div>          <!-- Products -->
           <div>
             <h3 class="text-lg font-semibold mb-4">Products</h3>
             <ul class="space-y-2 text-sm text-gray-400">
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/products/savings-accounts"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Savings Accounts
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/products/fixed-deposits"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Fixed Deposits
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/products/loans"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Loans
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/products/credit-cards"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Credit Cards
-                </a>
+                </router-link>
               </li>
             </ul>
-          </div>
-
-          <!-- Legal & Trust -->
+          </div>          <!-- Legal & Trust -->
           <div>
             <h3 class="text-lg font-semibold mb-4">Legal</h3>
             <ul class="space-y-2 text-sm text-gray-400">
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/privacy-policy"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Privacy Policy
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/terms-of-service"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Terms of Service
-                </a>
+                </router-link>
               </li>
               <li>
-                <a
-                  href="#"
+                <router-link
+                  to="/security"
                   class="hover:text-white transition-colors duration-200"
                 >
                   Security
-                </a>
+                </router-link>
               </li>
             </ul>
           </div>
