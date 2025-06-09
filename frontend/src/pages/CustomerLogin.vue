@@ -105,6 +105,12 @@
         </div>
       </div>
     </div>
+    
+    <!-- Disclaimer Dialog -->
+    <DisclaimerDialog 
+      v-model="showDisclaimer" 
+      @accepted="handleDisclaimerAccepted" 
+    />
   </div>
 </template>
 
@@ -114,6 +120,7 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/authStore';
 import { Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-vue-next';
+import DisclaimerDialog from '../components/DisclaimerDialog.vue';
 
 const router = useRouter();
 const toast = useToast();
@@ -127,6 +134,12 @@ onMounted(() => {
     } else if (authStore.isBanker) {
       router.replace('/banker/dashboard');
     }
+  } else {
+    // Show disclaimer if it hasn't been dismissed
+    const dismissed = localStorage.getItem('dismissedDisclaimer');
+    if (!dismissed) {
+      showDisclaimer.value = true;
+    }
   }
 });
 
@@ -135,10 +148,18 @@ const password = ref('');
 const loading = ref(false);
 const error = ref('');
 const showPassword = ref(false);
+const showDisclaimer = ref(false);
 const errors = ref({
   email: '',
   password: ''
 });
+
+const handleDisclaimerAccepted = (dontShowAgain) => {
+  console.log('Disclaimer accepted with dontShowAgain:', dontShowAgain);
+  
+  // After successful login and disclaimer acceptance, redirect to dashboard
+  router.push('/customer/dashboard');
+};
 
 const validateForm = () => {
   let isValid = true;
@@ -175,17 +196,21 @@ const handleSubmit = async () => {
     error.value = '';
     
     console.log('Attempting login with:', email.value);
-    
-    // More detailed logging to diagnose issues
+      // More detailed logging to diagnose issues
     try {
       const response = await authStore.customerLogin(email.value, password.value);
       console.log('Login response:', response);
+        // Show success message
+      toast.success('Login successful!');
       
-      // Add some delay to allow token processing
-      setTimeout(() => {
-        toast.success('Login successful');
+      // Show disclaimer if it hasn't been dismissed yet
+      const dismissed = localStorage.getItem('dismissedDisclaimer');
+      if (!dismissed) {
+        showDisclaimer.value = true;
+      } else {
+        // If disclaimer is already dismissed, redirect directly
         router.push('/customer/dashboard');
-      }, 500);
+      }
     } catch (apiError) {
       console.error('API Error Details:', {
         message: apiError.message,
@@ -197,8 +222,7 @@ const handleSubmit = async () => {
       if (apiError.response?.status === 500) {
         error.value = 'Server error. Please try again later or contact support.';
       } else if (apiError.response?.status === 404) {
-        error.value = 'Customer account not found. Please check your email.';
-      } else if (apiError.response?.status === 401) {
+        error.value = 'Customer account not found. Please check your email.';      } else if (apiError.response?.status === 401) {
         error.value = 'Invalid credentials. Please check your email and password.';
       } else if (apiError.response?.data?.message) {
         error.value = apiError.response.data.message;
@@ -207,13 +231,10 @@ const handleSubmit = async () => {
       } else {
         error.value = 'Login failed. Please try again.';
       }
-      
-      throw apiError; // Re-throw for outer catch
     }
   } catch (err) {
     console.error('Login error:', err);
-    toast.error(error.value || 'Login failed');
-  } finally {
+    error.value = 'An unexpected error occurred. Please try again.';  } finally {
     loading.value = false;
   }
 };
@@ -243,19 +264,5 @@ const handleSubmit = async () => {
 }
 .hover\:text-primary-dark:hover {
   color: #2563eb;
-}
-.full-width-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  min-width: 100%;
-  max-width: 100vw;
-  height: 100vh;
-  margin: 0;
-  padding-left: 0;
-  padding-right: 0;
-  overflow-x: hidden;
-  z-index: 0;
 }
 </style>

@@ -645,12 +645,17 @@
                   {{ otpError }}
                 </p>
               </div>
-            </div>
-          </div>
+            </div>          </div>
         </form>
       </div>
     </div>
   </div>
+  
+  <!-- Disclaimer Dialog -->
+  <DisclaimerDialog 
+    v-model="showDisclaimer" 
+    @accepted="handleDisclaimerAccepted" 
+  />
   
 </template>
 
@@ -660,6 +665,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/authStore';
 import { Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-vue-next';
+import DisclaimerDialog from '../components/DisclaimerDialog.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -694,12 +700,28 @@ onMounted(() => {
     // Default to savings account if not specified
     formData.accountType = 'savings';
   }
+  
+  // Show disclaimer if it hasn't been dismissed
+  const dismissed = localStorage.getItem('dismissedDisclaimer');
+  if (!dismissed) {
+    showDisclaimer.value = true;
+  }
 });
 
 const loading = ref(false);
 const error = ref('');
 const showPassword = ref(false);
+const showDisclaimer = ref(false);
 const acceptedTerms = ref(false);
+const registrationComplete = ref(false);// Handle user accepting the disclaimer 
+  const handleDisclaimerAccepted = (dontShowAgain) => {
+    console.log('Disclaimer accepted with dontShowAgain:', dontShowAgain);
+    
+    // If we're in post-registration state, redirect to dashboard
+    if (registrationComplete.value) {
+      router.push('/customer/dashboard');
+    }
+  };
 const errors = reactive({
   name: '',
   email: '',
@@ -791,12 +813,22 @@ const handleSubmit = async () => {
       const response = await authStore.registerCustomer(formData);
       toast.success('OTP sent to your email.');
       showOtpVerification.value = true;
-      registeredEmail.value = formData.email;
-    } else {
+      registeredEmail.value = formData.email;    } else {
       // Step 2: Verify OTP
       await authStore.verifyRegistrationOTP(registeredEmail.value, otp.value);
       toast.success('Registration successful! You are now logged in.');
-      router.push('/customer/dashboard');
+      
+      // Mark registration as complete
+      registrationComplete.value = true;
+      
+      // Check if disclaimer should be shown
+      const dismissed = localStorage.getItem('dismissedDisclaimer');
+      if (!dismissed) {
+        showDisclaimer.value = true;
+      } else {
+        // If disclaimer is already dismissed, redirect directly
+        router.push('/customer/dashboard');
+      }
     }
   } catch (err) {
     console.error('Registration error:', err);
