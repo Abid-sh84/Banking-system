@@ -21,7 +21,6 @@ backend/node_modules/
 backend/.env
 backend/ca.crt
 frontend/.env
-backend/vercel.json
 frontend/vercel.json
 
 
