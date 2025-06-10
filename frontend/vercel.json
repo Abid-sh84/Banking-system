@@ -1,8 +1,7 @@
 {
   "version": 2,
-  "name": "banking-system-frontend",
-  "framework": "vite",
-  "buildCommand": "npm run build",
+  "name": "banking-system-frontend",  "framework": "vite",
+  "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist",
   "routes": [
     {
@@ -22,11 +21,10 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "VITE_API_BASE_URL": "https://banking-system-model-1.vercel.app/api",
+  ],  "env": {
+    "VITE_API_BASE_URL": "https://banking-system-production-99a6.up.railway.app/api",
     "VITE_MODE": "production",
-    "VITE_APP_TITLE": "Banking System"
+    "VITE_APP_TITLE": "Modern Banking System"
   },
   "github": {
     "silent": true
