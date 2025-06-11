@@ -16,7 +16,7 @@ if (!fs.existsSync(path.join(__dirname, '.env.production'))) {
 VITE_API_BASE_URL=${process.env.VITE_API_BASE_URL || 'https://banking-system-production-99a6.up.railway.app/api'}
 VITE_MODE=production
 VITE_APP_TITLE=Modern Banking System
-VITE_SITE_URL=${process.env.VITE_SITE_URL || 'https://banking-system-frontend.vercel.app'}`;
+VITE_SITE_URL=${process.env.VITE_SITE_URL}`;
 
   fs.writeFileSync(path.join(__dirname, '.env.production'), envContent);
   console.log('.env.production created successfully!');
@@ -45,7 +45,7 @@ if (!fs.existsSync(path.join(__dirname, 'dist', 'robots.txt'))) {  const robotsC
 `User-agent: *
 Allow: /
 
-Sitemap: ${process.env.VITE_SITE_URL || 'https://banking-system-frontend.vercel.app'}/sitemap.xml`;
+Sitemap: ${process.env.VITE_SITE_URL}/sitemap.xml`;
   
   fs.writeFileSync(path.join(__dirname, 'dist', 'robots.txt'), robotsContent);
   console.log('Created robots.txt file');
