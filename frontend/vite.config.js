@@ -15,27 +15,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia'], // Split out common libraries
-          // You can add other dependencies to split as needed
-        },
-        // Split chunks by component types
-        manualChunks(id) {
-          // Split specific components into their own chunks
-          if (id.includes('/components/')) {
-            return 'components';
-          }
-          if (id.includes('/pages/')) {
-            return 'pages';
-          }
-          if (id.includes('node_modules/')) {
-            // Group node_modules into categories
-            if (id.includes('axios') || id.includes('http')) {
-              return 'http-vendor';
-            }
-            if (id.includes('chart') || id.includes('d3')) {
-              return 'chart-vendor';
-            }
-          }
+          vendor: ['vue', 'vue-router', 'pinia'], 
+          charts: ['chart.js'],
+          ui: ['lucide-vue-next'],
+          http: ['axios']
         }
       }
     }
