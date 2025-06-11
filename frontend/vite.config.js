@@ -10,6 +10,36 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 800, // Increase warning threshold temporarily
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'], // Split out common libraries
+          // You can add other dependencies to split as needed
+        },
+        // Split chunks by component types
+        manualChunks(id) {
+          // Split specific components into their own chunks
+          if (id.includes('/components/')) {
+            return 'components';
+          }
+          if (id.includes('/pages/')) {
+            return 'pages';
+          }
+          if (id.includes('node_modules/')) {
+            // Group node_modules into categories
+            if (id.includes('axios') || id.includes('http')) {
+              return 'http-vendor';
+            }
+            if (id.includes('chart') || id.includes('d3')) {
+              return 'chart-vendor';
+            }
+          }
+        }
+      }
+    }
+  },
   server: {
     proxy: {
       // Configure API proxy - prefix with /api 

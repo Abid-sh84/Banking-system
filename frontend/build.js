@@ -10,16 +10,25 @@ console.log('Running pre-build checks and setup...');
 
 // Ensure we have a .env file for production
 if (!fs.existsSync(path.join(__dirname, '.env.production'))) {
-  console.log('Creating .env.production from example...');
-    const envContent = 
+  console.log('Creating .env.production from environment variables...');
+  const envContent = 
 `# Production environment variables
 VITE_API_BASE_URL=${process.env.VITE_API_BASE_URL || 'https://banking-system-production-99a6.up.railway.app/api'}
 VITE_MODE=production
 VITE_APP_TITLE=Modern Banking System
-VITE_SITE_URL=${process.env.VITE_SITE_URL}`;
+VITE_SITE_URL=${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : ''}`;
 
   fs.writeFileSync(path.join(__dirname, '.env.production'), envContent);
   console.log('.env.production created successfully!');
+} else {
+  console.log('Using existing .env.production file');
+  // Update the SITE_URL with VERCEL_URL if we're in Vercel
+  if (process.env.VERCEL_URL) {
+    const envFile = fs.readFileSync(path.join(__dirname, '.env.production'), 'utf8');
+    const updatedEnv = envFile.replace(/VITE_SITE_URL=.*/, `VITE_SITE_URL=https://${process.env.VERCEL_URL}`);
+    fs.writeFileSync(path.join(__dirname, '.env.production'), updatedEnv);
+    console.log(`Updated VITE_SITE_URL to https://${process.env.VERCEL_URL}`);
+  }
 }
 
 // Run the build
