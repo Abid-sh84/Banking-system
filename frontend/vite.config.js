@@ -11,17 +11,7 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 800, // Increase warning threshold temporarily
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia'], 
-          charts: ['chart.js'],
-          ui: ['lucide-vue-next'],
-          http: ['axios']
-        }
-      }
-    }
+    chunkSizeWarningLimit: 1000, // Increase warning threshold
   },
   server: {
     proxy: {
