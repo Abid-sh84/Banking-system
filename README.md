@@ -83,8 +83,3 @@ This is a monorepo containing:
    ```
 
 5. Access the application at `http://localhost:5173`
-
-## Deployment
-
-This project is configured for deployment on Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed deployment instructions.
-
