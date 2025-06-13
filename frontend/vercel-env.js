@@ -10,7 +10,7 @@ console.log('Setting up environment for Vercel deployment...');
 
 const envContent = 
 `# Production environment variables - Generated for Vercel
-VITE_API_BASE_URL=${process.env.VITE_API_BASE_URL || 'https://banking-system-production-99a6.up.railway.app/api'}
+VITE_API_BASE_URL=${process.env.VITE_API_BASE_URL || 'https://banking-system-d91m.onrender.com'}
 VITE_MODE=production
 VITE_APP_TITLE=Modern Banking System
 VITE_SITE_URL=${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : ''}`;
