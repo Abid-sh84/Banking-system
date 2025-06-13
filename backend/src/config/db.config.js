@@ -46,13 +46,12 @@ const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD, // Use the password from your .env file
-  database: process.env.DB_NAME || 'bank',
-  port: parseInt(process.env.DB_PORT, 10) || 5432, // Default PostgreSQL port
+  database: process.env.DB_NAME || 'bank',  port: parseInt(process.env.DB_PORT, 10) || 5432, // Default PostgreSQL port
   max: 10, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   ssl: process.env.DB_SSL === 'true' ? {
-    rejectUnauthorized: true,
-    ca:process.env.CRT
+    rejectUnauthorized: false,
+    ca: process.env.CRT
   } : false
 };
 
@@ -72,7 +71,11 @@ const cleanConfig = {
 // Log the clean config (without password)
 console.log('Creating DB pool with config:', {
   ...cleanConfig,
-  password: '***hidden***'
+  password: '***hidden***',
+  ssl: cleanConfig.ssl ? {
+    rejectUnauthorized: cleanConfig.ssl.rejectUnauthorized,
+    caProvided: !!cleanConfig.ssl.ca
+  } : false
 });
 
 // Create pool with clean config
