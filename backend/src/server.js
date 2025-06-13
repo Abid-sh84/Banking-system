@@ -24,9 +24,12 @@ app.use(cors({
     'http://localhost:5174', // Add this port for frontend development
     'http://localhost:8080',
     process.env.FRONTEND_URL || 'https://banking-system-frontend.vercel.app',
+    'https://banking-system-iota-khaki.vercel.app', // Your specific Vercel domain
     /\.vercel\.app$/  // Allow all vercel.app subdomains
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

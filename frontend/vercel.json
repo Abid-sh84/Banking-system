@@ -8,7 +8,7 @@
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
-    "VITE_API_BASE_URL": "https://banking-system-production-99a6.up.railway.app/api",
+    "VITE_API_BASE_URL": "https://banking-system-d91m.onrender.com/api",
     "VITE_MODE": "production",
     "VITE_APP_TITLE": "Modern Banking System" 
   }
