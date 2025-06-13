@@ -52,9 +52,7 @@ const dbConfig = {
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   ssl: process.env.DB_SSL === 'true' ? {
     rejectUnauthorized: true,
-    ca: fs.existsSync(path.resolve(path.join(__dirname, '../../', process.env.DB_CA_PATH || 'ca.crt'))) ? 
-        fs.readFileSync(path.resolve(path.join(__dirname, '../../', process.env.DB_CA_PATH || 'ca.crt'))).toString() : 
-        undefined
+    ca:process.env.CRT
   } : false
 };
 
