@@ -1,7 +1,7 @@
 <!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\src\pages\BankerLogin.vue -->
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 full-width-bg">
-    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+  <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 full-width-bg">
+    <div class="mx-auto w-full sm:max-w-md relative z-10">
       <div class="flex justify-center">
         <div class="h-16 w-16 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
           <span class="text-white text-2xl font-bold">MB</span>
@@ -15,8 +15,8 @@
           Back to home
         </router-link>
       </p>
-    </div>    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-      <div class="bg-white py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10 transition-all duration-300 hover:shadow-xl">
+    </div>    <div class="mt-8 mx-auto w-full sm:max-w-md relative z-10">
+      <div class="bg-white py-8 px-6 shadow-2xl rounded-lg sm:rounded-lg sm:px-10 transition-all duration-300 hover:shadow-xl">
         <form class="space-y-6" @submit.prevent="handleSubmit">
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700">
@@ -237,9 +237,14 @@ const handleSubmit = async () => {
   max-width: 100vw;
   height: 100vh;
   margin: 0;
-  padding-left: 0;
-  padding-right: 0;
   overflow-x: hidden;
   z-index: 0;
+}
+
+/* Responsive improvements */
+@media (max-width: 640px) {
+  .full-width-bg {
+    padding: 0 12px;
+  }
 }
 </style>

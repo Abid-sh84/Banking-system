@@ -1,9 +1,8 @@
 <template>  
   <!-- Fixed background that fills the entire viewport -->
   <div class="full-width-bg bg-gradient-to-br from-blue-50 to-indigo-100 animate-fadeIn"></div>
-  
-  <!-- Content container with proper spacing -->
-  <div class="min-h-screen flex flex-col pt-28 pb-12 sm:px-6 lg:px-8 navbar-spacing relative z-10">
+    <!-- Content container with proper spacing -->
+  <div class="min-h-screen flex flex-col pt-28 pb-12 px-4 sm:px-6 lg:px-8 navbar-spacing relative z-10">
     <!-- Abstract banking illustrations -->
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
       <div class="absolute top-28 left-10 w-24 h-24 bg-primary opacity-10 rounded-full blur-3xl"></div>
@@ -23,8 +22,7 @@
       <div class="grid grid-cols-12 grid-rows-12 gap-10 absolute inset-0">
         <div v-for="i in 12" :key="i" class="w-1 h-1 bg-gray-600 opacity-10 rounded-full"></div>
       </div>
-    </div>
-    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-20">      <div class="flex justify-center">
+    </div>    <div class="mx-auto w-full sm:max-w-md relative z-20">      <div class="flex justify-center">
         <div class="h-20 w-20 bg-gradient-to-r from-primary to-indigo-600 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden border-2 border-white transform transition-all duration-500 hover:scale-105">
           <span class="text-white text-2xl font-bold relative z-10">MB</span>
           <div class="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
@@ -53,8 +51,8 @@
           Step 1 of 2
         </span>
       </div>
-    </div>    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-slideInUp">
-      <div class="bg-white py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10 transition-all duration-300 hover:shadow-xl border border-gray-100">
+    </div>    <div class="mt-8 mx-auto w-full sm:max-w-md relative z-10 animate-slideInUp">
+      <div class="bg-white py-8 px-6 shadow-2xl rounded-lg sm:rounded-lg sm:px-10 transition-all duration-300 hover:shadow-xl border border-gray-100">
         <div class="space-y-6">
           <!-- Account Type Selection Cards -->
           <div class="grid grid-cols-1 gap-4">            <!-- Savings Account Card -->
@@ -244,8 +242,6 @@ const proceedToRegistration = () => {
   max-width: 100vw;
   height: 100vh;
   margin: 0;
-  padding-left: 0;
-  padding-right: 0;
   overflow-x: hidden;
   z-index: 0; /* Lower z-index to ensure content appears above */
 }
@@ -254,6 +250,10 @@ const proceedToRegistration = () => {
 @media (max-width: 640px) {
   .navbar-spacing {
     padding-top: 100px; /* More padding on mobile devices */
+  }
+  
+  .full-width-bg {
+    padding: 0 12px;
   }
 }
 
