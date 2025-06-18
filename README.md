@@ -28,7 +28,7 @@ A full-stack banking application with customer and banker portals, virtual card 
   - Role-based access control
 
 - **Additional Features**
-  - 💬 Integrated ChatBot for customer assistance
+  - 💬 AI-Powered ChatBot using OpenRouter Deepseek model for intelligent customer assistance
   - 📊 CIBIL score assessment
   - ⏱️ Activity timeline and transaction history
   - 📈 Performance metrics and analytics
@@ -209,6 +209,29 @@ The API provides endpoints for:
 - Deposit handling
 - Customer information
 - Chatbot interactions
+
+## 🤖 AI-Powered Chatbot
+
+The application features a sophisticated AI-powered chatbot that leverages the Deepseek large language model via the OpenRouter API. This integration provides customers with intelligent, context-aware assistance.
+
+### Features
+- **AI Integration**: Uses Deepseek-chat-v3-0324 model from OpenRouter
+- **Context-Aware Responses**: The chatbot has access to the customer's account information, transaction history, and banking data
+- **Intelligent Banking Assistant**: Can answer questions about account balances, transactions, banking procedures, and general banking information
+- **Fallback Mechanism**: Includes a robust fallback system when the AI service is unavailable
+- **Personalized Experience**: Tailors responses based on the customer's banking profile and history
+
+### Technical Implementation
+- Backend integration uses Node.js with Axios for API communication
+- Real-time customer data from PostgreSQL is provided as context to the AI
+- Responses are formatted with relevant quick action buttons for enhanced UX
+- System messages provide guardrails to ensure appropriate and helpful responses
+
+### Setup
+To configure the chatbot, ensure the following environment variable is set in your backend `.env` file:
+```
+OPENROUTER_API_KEY=your_api_key_here
+```
 
 ## 📊 Live Demo
 

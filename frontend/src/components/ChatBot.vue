@@ -12,16 +12,21 @@
     </button>
     
     <!-- Chat window -->
-    <div v-if="isOpen" class="chatbot-window">
-      <!-- Chat header -->
+    <div v-if="isOpen" class="chatbot-window">      <!-- Chat header -->
       <div class="chatbot-header">
         <div class="flex items-center">
           <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
             <Bot class="h-5 w-5 text-blue-600" />
           </div>
-          <h3 class="text-lg font-medium">Banking Assistant</h3>
+          <div>
+            <h3 class="text-lg font-medium">Banking Assistant</h3>
+            <span class="text-xs text-gray-500">Powered by Deepseek AI</span>
+          </div>
         </div>
-        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
+        <div class="flex flex-col items-end">
+          <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
+          <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full mt-1">AI-Powered</span>
+        </div>
       </div>
       
       <!-- Chat messages -->
@@ -108,19 +113,20 @@ export default {
       type: Object,
       required: true
     }
-  },
-  setup(props) {
+  },  setup(props) {
     const isOpen = ref(false);
     const messages = ref([]);
     const userInput = ref('');
     const isTyping = ref(false);
     const messagesContainer = ref(null);
-      // Load initial message when component mounts
-    onMounted(() => {
+    const dashboardData = ref(null);
+    
+    // Load initial message and dashboard data when component mounts
+    onMounted(async () => {
       messages.value = [
         {
           sender: 'bot',
-          text: `Hello ${props.customerData?.name || 'there'}! I'm your banking assistant. How can I help you today?<br><br>You can ask me about:<br>• Your account balance<br>• Recent transactions<br>• Banking FAQs<br>• Transfer instructions<br>• Deposit information`,
+          text: `Hello ${props.customerData?.name || 'there'}! I'm your AI banking assistant powered by Deepseek technology. How can I help you today?<br><br>You can ask me about:<br>• Your account balance<br>• Recent transactions<br>• Banking FAQs<br>• Transfer instructions<br>• Deposit information<br>• Card management`,
           actions: [
             { label: 'Check my balance', value: 'What is my current balance?' },
             { label: 'Recent transactions', value: 'Show my recent transactions' },
@@ -128,6 +134,20 @@ export default {
           ]
         }
       ];
+      
+      // Fetch comprehensive dashboard data in background
+      try {
+        const response = await ChatbotService.getDashboardData();
+        if (response.data && response.data.status === 'success') {
+          dashboardData.value = response.data.data;
+        }
+      } catch (error) {
+        console.error('Could not fetch dashboard data:', error);
+        // Fallback to props if API call fails
+        dashboardData.value = {
+          customer: props.customerData
+        };
+      }
     });
     
     // Watch for new messages to scroll to bottom
@@ -152,53 +172,74 @@ export default {
     const toggleChat = () => {
       isOpen.value = !isOpen.value;
     };
-      // Process and respond to user input
+    // Process and respond to user input
     const processUserInput = async (input) => {
       isTyping.value = true;
       
       try {
         const inputLower = input.toLowerCase();
-          // Check for balance inquiry keywords
+        
+        // For special UI cases - balance and transactions, show specialized UI
         if (inputLower.includes('balance') || inputLower.includes('how much') || inputLower.includes('my money')) {
           try {
-            // Get real-time data from API using the service
-            const response = await ChatbotService.getAccountInfo();
-            if (response.data && response.data.status === 'success') {
-              const accountInfo = response.data.data.customer;
-                messages.value.push({
-                sender: 'bot',
-                type: 'balance',
-                data: {
-                  balance: accountInfo.balance,
-                  status: accountInfo.status
-                },
-                actions: [
-                  { label: 'Recent transactions', value: 'Show my recent transactions' },
-                  { label: 'Make a deposit', value: 'How do I make a deposit?' }
-                ]
-              });
+            // Use dashboard data if available, otherwise fetch from API
+            let accountInfo;
+            if (dashboardData.value && dashboardData.value.customer) {
+              accountInfo = dashboardData.value.customer;
             } else {
-              throw new Error('Could not retrieve account information');
+              const response = await ChatbotService.getAccountInfo();
+              if (response.data && response.data.status === 'success') {
+                accountInfo = response.data.data.customer;
+              } else {
+                throw new Error('Could not retrieve account information');
+              }
             }
-          } catch (error) {
-            // Fallback to props if API fails
+            
+            // Display balance in special UI format
             messages.value.push({
               sender: 'bot',
               type: 'balance',
               data: {
-                balance: props.customerData.balance,
-                status: props.customerData.status
-              }
+                balance: accountInfo.balance,
+                status: accountInfo.status
+              },
+              actions: [
+                { label: 'Recent transactions', value: 'Show my recent transactions' },
+                { label: 'Make a deposit', value: 'How do I make a deposit?' }
+              ]
             });
+            
+            // Also send to AI for more context
+            const aiResponse = await ChatbotService.askQuestion(input);
+            if (aiResponse.data && aiResponse.data.status === 'success') {
+              // Add AI's additional context as a follow-up message
+              messages.value.push({
+                sender: 'bot',
+                text: aiResponse.data.data.response
+              });
+            }
+          } catch (error) {
+            // Use AI response
+            await useAIResponse(input);
           }
         }
         // Check for transaction history keywords
         else if (inputLower.includes('transaction') || inputLower.includes('history') || inputLower.includes('recent')) {
           try {
-            // Get recent transactions using the service
-            const response = await ChatbotService.getRecentTransactions(3);
-            if (response.data && response.data.status === 'success' && response.data.data.transactions.length > 0) {
-              const transactions = response.data.data.transactions;
+            // Use dashboard data if available, otherwise fetch from API
+            let transactions;
+            if (dashboardData.value && dashboardData.value.transactions) {
+              transactions = dashboardData.value.transactions.slice(0, 3);
+            } else {
+              const response = await ChatbotService.getRecentTransactions(3);
+              if (response.data && response.data.status === 'success') {
+                transactions = response.data.data.transactions;
+              } else {
+                throw new Error('Could not retrieve transactions');
+              }
+            }
+            
+            if (transactions && transactions.length > 0) {
               let transactionText = 'Your most recent transactions:<br><br>';
               
               transactions.forEach((tx, index) => {
@@ -226,65 +267,25 @@ export default {
                   { label: 'Make a transfer', value: 'How do I transfer money?' }
                 ]
               });
+              
+              // Also send to AI for more context
+              const aiResponse = await ChatbotService.askQuestion(input);
+              if (aiResponse.data && aiResponse.data.status === 'success') {
+                // Add AI's additional insights as follow-up
+                messages.value.push({
+                  sender: 'bot',
+                  text: aiResponse.data.data.response
+                });
+              }
             } else {
-              messages.value.push({
-                sender: 'bot',
-                text: `You don't have any recent transactions. Once you make transactions, they will be displayed in the Transaction History section below.`
-              });
+              await useAIResponse(input);
             }
           } catch (error) {
-            messages.value.push({
-              sender: 'bot',
-              text: `You can view all your recent transactions in the Transaction History section below. The most recent transactions are displayed at the top.`
-            });
+            await useAIResponse(input);
           }
-        }        else {
-          // For other types of questions, use the backend chatbot API through the service
-          try {
-            const response = await ChatbotService.askQuestion(input);
-            if (response.data && response.data.status === 'success') {
-              messages.value.push({
-                sender: 'bot',
-                text: response.data.data.response
-              });
-            } else {
-              throw new Error('Could not get response from chatbot API');
-            }
-          } catch (error) {
-            // Fallback to local responses if API fails
-            if (inputLower.includes('transfer') || inputLower.includes('send money')) {              messages.value.push({
-                sender: 'bot',
-                text: `To transfer money:<br>1. Click on the "Transfer" button in Quick Actions<br>2. Enter recipient's account details<br>3. Specify the amount<br>4. Review and confirm your transfer`,
-                actions: [
-                  { label: 'Check balance', value: 'What is my current balance?' },
-                  { label: 'About deposits', value: 'How do I make a deposit?' }
-                ]
-              });            } else if (inputLower.includes('deposit') || inputLower.includes('add money')) {
-              messages.value.push({
-                sender: 'bot',
-                text: `To make a deposit:<br>1. Click on the "Deposit" button in Quick Actions<br>2. Enter the deposit amount<br>3. Choose the deposit method<br>4. Follow the instructions to complete your deposit`,
-                actions: [
-                  { label: 'Check balance', value: 'What is my current balance?' },
-                  { label: 'Transfer money', value: 'How do I transfer money?' }
-                ]
-              });
-            } else if (inputLower.includes('card') || inputLower.includes('debit card')) {
-              messages.value.push({
-                sender: 'bot',
-                text: `You can view your debit card details by clicking the "View your debit card" button in the Account Overview section.`
-              });
-            } else if (inputLower.includes('contact') || inputLower.includes('support') || inputLower.includes('help')) {
-              messages.value.push({
-                sender: 'bot',
-                text: `For customer support:<br>• Email: support@bankingsystem.com<br>• Phone: 1800-123-4567<br>• Hours: Mon-Fri 9am-6pm`
-              });
-            } else {
-              messages.value.push({
-                sender: 'bot',
-                text: `I'm sorry, I don't have information about that yet. For specific inquiries, please contact our customer support.`
-              });
-            }
-          }
+        } else {
+          // For all other questions, use the AI-powered chatbot API
+          await useAIResponse(input);
         }
       } catch (error) {
         console.error('Error processing chatbot input:', error);
@@ -294,6 +295,78 @@ export default {
         });
       } finally {
         isTyping.value = false;
+      }
+    };
+    
+    // Helper function to use the AI response
+    const useAIResponse = async (input) => {
+      try {
+        const response = await ChatbotService.askQuestion(input);
+        if (response.data && response.data.status === 'success') {
+          // Format response with relevant action buttons
+          let actionButtons = [];
+          const responseLower = response.data.data.response.toLowerCase();
+          
+          if (responseLower.includes('balance') || responseLower.includes('account')) {
+            actionButtons.push({ label: 'Check balance', value: 'What is my current balance?' });
+          }
+          if (responseLower.includes('transaction') || responseLower.includes('payment') || responseLower.includes('transfer')) {
+            actionButtons.push({ label: 'Show transactions', value: 'Show my recent transactions' });
+          }
+          if (responseLower.includes('deposit')) {
+            actionButtons.push({ label: 'Make a deposit', value: 'How do I make a deposit?' });
+          }
+          if (responseLower.includes('card')) {
+            actionButtons.push({ label: 'Card details', value: 'Tell me about my card' });
+          }
+          
+          messages.value.push({
+            sender: 'bot',
+            text: response.data.data.response,
+            actions: actionButtons.length > 0 ? actionButtons : undefined
+          });
+        } else {
+          throw new Error('Could not get response from chatbot API');
+        }
+      } catch (error) {
+        console.error('AI response error:', error);
+        
+        // Fallback to simple responses
+        const inputLower = input.toLowerCase();
+        if (inputLower.includes('transfer') || inputLower.includes('send money')) {
+          messages.value.push({
+            sender: 'bot',
+            text: `To transfer money:<br>1. Click on the "Transfer" button in Quick Actions<br>2. Enter recipient's account details<br>3. Specify the amount<br>4. Review and confirm your transfer`,
+            actions: [
+              { label: 'Check balance', value: 'What is my current balance?' },
+              { label: 'About deposits', value: 'How do I make a deposit?' }
+            ]
+          });
+        } else if (inputLower.includes('deposit') || inputLower.includes('add money')) {
+          messages.value.push({
+            sender: 'bot',
+            text: `To make a deposit:<br>1. Click on the "Deposit" button in Quick Actions<br>2. Enter the deposit amount<br>3. Choose the deposit method<br>4. Follow the instructions to complete your deposit`,
+            actions: [
+              { label: 'Check balance', value: 'What is my current balance?' },
+              { label: 'Transfer money', value: 'How do I transfer money?' }
+            ]
+          });
+        } else if (inputLower.includes('card') || inputLower.includes('debit card')) {
+          messages.value.push({
+            sender: 'bot',
+            text: `You can view your debit card details by clicking the "View your debit card" button in the Account Overview section.`
+          });
+        } else if (inputLower.includes('contact') || inputLower.includes('support') || inputLower.includes('help')) {
+          messages.value.push({
+            sender: 'bot',
+            text: `For customer support:<br>• Email: support@bankingsystem.com<br>• Phone: 1800-123-4567<br>• Hours: Mon-Fri 9am-6pm`
+          });
+        } else {
+          messages.value.push({
+            sender: 'bot',
+            text: `I'm sorry, I don't have information about that yet. For specific inquiries, please contact our customer support.`
+          });
+        }
       }
     };
     
@@ -347,20 +420,21 @@ export default {
       // Process the action
       await processUserInput(value);
     };
-    
-    return {
+      return {
       isOpen,
       messages,
       userInput,
       isTyping,
       messagesContainer,
+      dashboardData,
       toggleChat,
       sendMessage,
       formatMessage,
       formatCurrency,
       getStatusClass,
       getStatusText,
-      handleQuickAction
+      handleQuickAction,
+      useAIResponse
     };
   }
 };

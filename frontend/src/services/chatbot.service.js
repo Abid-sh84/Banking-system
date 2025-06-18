@@ -20,11 +20,19 @@ export class ChatbotService {
   static async getRecentTransactions(limit = 5) {
     return api.get(`/api/chatbot/recent-transactions?limit=${limit}`);
   }
+
+  /**
+   * Get comprehensive dashboard data for the customer (account, transactions, cards, deposits)
+   * @returns {Promise} Response from backend API
+   */
+  static async getDashboardData() {
+    return api.get('/api/chatbot/dashboard-data');
+  }
   
   /**
    * Ask a question to the chatbot
    * @param {string} question - The question to ask
-   * @returns {Promise} Response from backend API
+   * @returns {Promise} Response from backend API with OpenRouter Deepseek AI response
    */
   static async askQuestion(question) {
     return api.post('/api/chatbot/ask', { question });
