@@ -2,7 +2,7 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100">
     <!-- Header with bank logo -->
-    <header class="bg-white shadow">
+    <!-- <header class="bg-white shadow">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <router-link to="/" class="flex items-center">
           <div class="h-10 w-10 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full flex items-center justify-center shadow-md">
@@ -16,7 +16,7 @@
           </router-link>
         </div>
       </div>
-    </header>
+    </header> -->
     
     <!-- Hero Section -->
     <div class="py-12 bg-white">
