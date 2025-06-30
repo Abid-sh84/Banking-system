@@ -215,9 +215,9 @@ The API provides endpoints for:
 The application features a sophisticated AI-powered chatbot that leverages the Deepseek large language model via the OpenRouter API. This integration provides customers with intelligent, context-aware assistance.
 
 ### Features
-- **AI Integration**: Uses Deepseek-chat-v3-0324 model from OpenRouter
+- **AI Integration**: Uses Deepseek-chat-v3-0324 model from OpenRouter Api
 - **Context-Aware Responses**: The chatbot has access to the customer's account information, transaction history, and banking data
-- **Intelligent Banking Assistant**: Can answer questions about account balances, transactions, banking procedures, and general banking information
+- **Intelligent Banking Assistant**: Can answer questions about account balances, transactions, banking procedures, and general banking information 
 - **Fallback Mechanism**: Includes a robust fallback system when the AI service is unavailable
 - **Personalized Experience**: Tailors responses based on the customer's banking profile and history
 

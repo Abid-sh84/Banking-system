@@ -17,7 +17,7 @@
     </div>
     
     <template v-else>
-      <!-- Enhanced Banker Dashboard Header with welcome message -->
+      <!-- Enhanced Banker Dashboard Header with welcome message or using charts-->
       <div class="mb-8 animate-slideUp">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
