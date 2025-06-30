@@ -16,6 +16,11 @@ const { getCustomerCibilScore } = require('../controllers/cibil.controller');
 const { authenticate, authorize, checkUserStatus } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validation.middleware');
 
+/**
+ * Note: This application supports both text-based chatbot and voice assistant functionality
+ * using the same backend endpoints for question processing
+ */
+
 // Validation schemas
 const updateProfileSchema = {
   required: ['name', 'address', 'phone'],

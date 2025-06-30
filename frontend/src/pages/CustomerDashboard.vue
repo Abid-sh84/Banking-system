@@ -2,7 +2,9 @@
 <template>
   <div>
     <!-- Integrate ChatBot -->
+    <!-- Chatbot and VoiceBot -->
     <ChatBot :customerData="customerData" />
+    <VoiceBot :customerData="customerData" />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div v-if="loading" class="flex items-center justify-center py-12">
         <Loader2 class="h-12 w-12 text-primary animate-spin" />
       </div>
@@ -526,6 +528,7 @@ import ExportReportModal from '../components/ExportReportModal.vue'; // Add Expo
 import TransactionFiltersModal from '../components/TransactionFiltersModal.vue'; // Add TransactionFiltersModal
 import VirtualCardSection from '../components/VirtualCardSection.vue'; // Import missing component
 import ChatBot from '../components/ChatBot.vue'; // Import ChatBot component
+import VoiceBot from '../components/VoiceBot.vue'; // Import VoiceBot component
 import { useAuthStore } from '../stores/authStore';
 
 const authStore = useAuthStore();
