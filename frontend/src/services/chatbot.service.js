@@ -5,11 +5,25 @@ import api from './api';
  */
 export class ChatbotService {
   /**
+   * Check if the API is available
+   * @returns {Promise<boolean>} True if API is available, false otherwise
+   */
+  static async checkApiAvailable() {
+    try {
+      // Make a simple request to check API status
+      const response = await api.get('/chatbot/health');
+      return response.status === 200;
+    } catch (error) {
+      console.warn('API health check failed:', error.message);
+      return false;
+    }
+  }
+  /**
    * Get account information for the current customer
    * @returns {Promise} Response from backend API
    */
   static async getAccountInfo() {
-    return api.get('/api/chatbot/account-info');
+    return api.get('/chatbot/account-info');
   }
   
   /**
@@ -18,7 +32,7 @@ export class ChatbotService {
    * @returns {Promise} Response from backend API
    */
   static async getRecentTransactions(limit = 5) {
-    return api.get(`/api/chatbot/recent-transactions?limit=${limit}`);
+    return api.get(`/chatbot/recent-transactions?limit=${limit}`);
   }
 
   /**
@@ -26,7 +40,7 @@ export class ChatbotService {
    * @returns {Promise} Response from backend API
    */
   static async getDashboardData() {
-    return api.get('/api/chatbot/dashboard-data');
+    return api.get('/chatbot/dashboard-data');
   }
   
   /**
@@ -35,7 +49,20 @@ export class ChatbotService {
    * @returns {Promise} Response from backend API with OpenRouter Deepseek AI response
    */
   static async askQuestion(question) {
-    return api.post('/api/chatbot/ask', { question });
+    try {
+      return await api.post('/chatbot/ask', { question });
+    } catch (error) {
+      console.error('Error asking question to chatbot:', error);
+      // Return a formatted response with a friendly error message
+      return {
+        data: {
+          status: 'error',
+          data: {
+            response: "I'm sorry, I couldn't process your request due to a connection issue. Please try again later."
+          }
+        }
+      };
+    }
   }
 }
 

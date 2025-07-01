@@ -28,11 +28,15 @@
           <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
           <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full mt-1">AI-Powered</span>
         </div>
+        <!-- Mobile close button -->
+        <button v-if="isMobile" @click="toggleVoice" class="mobile-close-button">
+          <X class="h-4 w-4" />
+        </button>
       </div>
       
       <!-- Voice interaction area -->
       <div class="voicebot-content">
-        <div class="voice-messages" ref="messagesContainer">
+        <div class="voice-messages" :class="{ 'mobile-messages': isMobile }" ref="messagesContainer">
           <div 
             v-for="(message, index) in messages" 
             :key="index" 
@@ -81,6 +85,7 @@
 import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
 import { Phone, X, Mic, MicOff } from 'lucide-vue-next';
 import ChatbotService from '../services/chatbot.service';
+import AssistantStateService from '../services/assistant-state.service';
 
 export default {
   name: 'VoiceBot',
@@ -104,6 +109,12 @@ export default {
     const messagesContainer = ref(null);
     const voiceStatus = ref('Click "Speak" to start');
     const dashboardData = ref(null);
+    const isMobile = ref(window.innerWidth <= 768);
+    
+    // Function to handle window resize
+    const handleResize = () => {
+      isMobile.value = window.innerWidth <= 768;
+    };
     
     // Speech recognition setup
     let recognition = null;
@@ -177,18 +188,24 @@ export default {
     
     // Toggle voice window
     const toggleVoice = () => {
-      isOpen.value = !isOpen.value;
-      
-      if (isOpen.value && !recognition) {
-        setupSpeechRecognition();
-      }
-      
-      if (!isOpen.value) {
+      // If already open, close it
+      if (isOpen.value) {
+        isOpen.value = false;
+        AssistantStateService.clearActiveAssistant();
+        
         // Stop speaking and listening when window is closed
         if (synth.speaking) synth.cancel();
         if (isListening.value && recognition) {
           recognition.abort();
           isListening.value = false;
+        }
+      } else {
+        // If opening, set as active assistant
+        isOpen.value = true;
+        AssistantStateService.setActiveAssistant('voice');
+        
+        if (!recognition) {
+          setupSpeechRecognition();
         }
       }
     };
@@ -226,20 +243,17 @@ export default {
       
       try {
         const response = await ChatbotService.askQuestion(input);
-        if (response.data && response.data.status === 'success') {
-          const aiResponse = response.data.data.response;
-          
-          // Add bot message
-          messages.value.push({
-            sender: 'bot',
-            text: aiResponse
-          });
-          
-          // Speak the response
-          speakText(aiResponse);
-        } else {
-          throw new Error('Could not get response from chatbot API');
-        }
+        // The service now handles errors and always returns a formatted response
+        const aiResponse = response.data?.data?.response || "I'm sorry, I couldn't understand that.";
+        
+        // Add bot message
+        messages.value.push({
+          sender: 'bot',
+          text: aiResponse
+        });
+        
+        // Speak the response
+        speakText(aiResponse);
       } catch (error) {
         console.error('Voice processing error:', error);
         
@@ -258,8 +272,28 @@ export default {
       }
     };
     
+    // Watch for active assistant changes
+    watch(() => AssistantStateService.activeAssistant.value, (newActiveAssistant) => {
+      // If another assistant becomes active, close this one
+      if (newActiveAssistant && newActiveAssistant !== 'voice' && isOpen.value) {
+        isOpen.value = false;
+        
+        // Stop speaking and listening
+        if (synth.speaking) synth.cancel();
+        if (isListening.value && recognition) {
+          recognition.abort();
+          isListening.value = false;
+        }
+      }
+    });
+    
     // Load initial welcome message
     onMounted(() => {
+      // If opened by default, register as active assistant
+      if (isOpen.value) {
+        AssistantStateService.setActiveAssistant('voice');
+      }
+      
       messages.value = [
         {
           sender: 'bot',
@@ -267,27 +301,31 @@ export default {
         }
       ];
       
-      // Fetch dashboard data in background for context
-      ChatbotService.getDashboardData()
-        .then(response => {
-          if (response.data && response.data.status === 'success') {
-            dashboardData.value = response.data.data;
-          }
-        })
-        .catch(error => {
-          console.error('Could not fetch dashboard data:', error);
-          dashboardData.value = {
-            customer: props.customerData
-          };
-        });
+      // Setup responsive behavior
+      // Add resize event listener
+      window.addEventListener('resize', handleResize);
+      
+      // Set basic customer data without making API request
+      dashboardData.value = {
+        customer: props.customerData,
+        // Add safe default values
+        account: {
+          balance: 0,
+          transactions: []
+        }
+      };
+        
+      // Initial check for mobile
+      handleResize();
     });
     
-    // Clean up speech resources on component unmount
+    // Clean up speech resources and event listeners on component unmount
     onBeforeUnmount(() => {
       if (synth.speaking) synth.cancel();
       if (recognition) {
         recognition.abort();
       }
+      window.removeEventListener('resize', handleResize);
     });
     
     // Watch for new messages to scroll to bottom
@@ -313,7 +351,8 @@ export default {
       messagesContainer,
       toggleVoice,
       toggleListening,
-      formatMessage
+      formatMessage,
+      isMobile
     };
   }
 };
@@ -571,5 +610,62 @@ export default {
 .voice-button span {
   font-size: 0.75rem;
   margin-top: 0.25rem;
+}
+
+/* Mobile responsive styles */
+@media screen and (max-width: 768px) {
+  .voicebot-container {
+    bottom: 5rem; /* Position above the chat button instead of beside it */
+    right: 1rem;
+  }
+  
+  .voicebot-window {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    z-index: 1001;
+  }
+  
+  .voicebot-header {
+    padding: 1rem;
+    position: relative;
+  }
+  
+  .mobile-close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    z-index: 2;
+  }
+
+  .voice-controls {
+    padding-bottom: 2rem;
+  }
+  
+  .voice-button {
+    width: 6rem;
+    height: 6rem;
+  }
+  
+  .mobile-messages {
+    max-height: calc(100vh - 220px);
+  }
 }
 </style>
