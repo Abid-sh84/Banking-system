@@ -61,6 +61,13 @@
             <div v-for="n in 5" :key="n" class="voice-wave"></div>
           </div>
           <div class="voice-status">{{ voiceStatus }}</div>
+          
+          <!-- Mobile compatibility notice -->
+          <div v-if="isMobile" class="mobile-notice">
+            <p class="text-xs text-gray-600 text-center mt-2">
+              📱 For best results: Use Chrome/Safari, allow microphone access, and speak clearly
+            </p>
+          </div>
         </div>
         
         <!-- Voice control -->
@@ -124,6 +131,7 @@ export default {
     
     // Setup speech recognition
     const setupSpeechRecognition = () => {
+      // Check for speech recognition support with better mobile compatibility
       if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
@@ -131,14 +139,23 @@ export default {
         recognition.interimResults = false;
         recognition.lang = 'en-US';
         
+        // Mobile-specific settings
+        if (isMobile.value) {
+          recognition.maxAlternatives = 1;
+          // Set longer timeout for mobile
+          recognition.grammars = null;
+        }
+        
         recognition.onstart = () => {
           isListening.value = true;
           voiceStatus.value = 'Listening...';
+          console.log('Speech recognition started');
         };
         
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
           voiceStatus.value = 'Processing...';
+          console.log('Speech recognized:', transcript);
           
           // Add user message
           messages.value.push({
@@ -153,7 +170,24 @@ export default {
         recognition.onerror = (event) => {
           console.error('Speech recognition error:', event.error);
           isListening.value = false;
-          voiceStatus.value = `Error: ${event.error}. Try again.`;
+          
+          // Provide more specific error messages for mobile issues
+          switch(event.error) {
+            case 'not-allowed':
+              voiceStatus.value = 'Microphone access denied. Please allow microphone access and try again.';
+              break;
+            case 'no-speech':
+              voiceStatus.value = 'No speech detected. Please try speaking clearly.';
+              break;
+            case 'audio-capture':
+              voiceStatus.value = 'Microphone not available. Please check your device.';
+              break;
+            case 'network':
+              voiceStatus.value = 'Network error. Please check your connection.';
+              break;
+            default:
+              voiceStatus.value = `Error: ${event.error}. Try again.`;
+          }
         };
         
         recognition.onend = () => {
@@ -163,13 +197,25 @@ export default {
           }
         };
       } else {
-        voiceStatus.value = 'Speech recognition not supported in this browser.';
+        // Better mobile support detection
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobileDevice) {
+          voiceStatus.value = 'Voice recognition may not be supported on this mobile browser. Try using Chrome or Safari.';
+        } else {
+          voiceStatus.value = 'Speech recognition not supported in this browser.';
+        }
         console.error('Speech Recognition API not supported in this browser');
       }
     };
     
-    // Function to speak text
+    // Function to speak text with mobile optimizations
     const speakText = (text) => {
+      // Check if speech synthesis is available
+      if (!synth) {
+        console.warn('Speech synthesis not available');
+        return;
+      }
+      
       // Stop any ongoing speech
       if (synth.speaking) {
         synth.cancel();
@@ -178,12 +224,33 @@ export default {
       // Remove HTML tags for speech
       const cleanText = text.replace(/<\/?[^>]+(>|$)/g, '');
       
+      // Don't speak if text is empty
+      if (!cleanText.trim()) return;
+      
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = 'en-US';
-      utterance.rate = 1.0;
+      utterance.rate = isMobile.value ? 0.9 : 1.0; // Slightly slower on mobile
       utterance.pitch = 1.0;
+      utterance.volume = 1.0;
       
-      synth.speak(utterance);
+      // Mobile-specific settings
+      if (isMobile.value) {
+        // Add error handling for mobile speech synthesis
+        utterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event.error);
+        };
+        
+        utterance.onend = () => {
+          console.log('Speech synthesis completed');
+        };
+      }
+      
+      // Handle potential mobile limitations
+      try {
+        synth.speak(utterance);
+      } catch (error) {
+        console.error('Failed to speak text:', error);
+      }
     };
     
     // Toggle voice window
@@ -210,10 +277,16 @@ export default {
       }
     };
     
-    // Toggle listening state
+    // Toggle listening state with mobile optimizations
     const toggleListening = () => {
       if (!recognition) {
         setupSpeechRecognition();
+      }
+      
+      // Check if recognition is available
+      if (!recognition) {
+        voiceStatus.value = 'Speech recognition not available on this device';
+        return;
       }
       
       if (isListening.value) {
@@ -221,17 +294,58 @@ export default {
         isListening.value = false;
         voiceStatus.value = 'Listening stopped';
       } else {
-        try {
+        // Request microphone permission explicitly on mobile
+        if (isMobile.value && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(() => {
+              startRecognition();
+            })
+            .catch((error) => {
+              console.error('Microphone permission denied:', error);
+              voiceStatus.value = 'Microphone access required. Please allow microphone access in your browser settings.';
+            });
+        } else {
+          startRecognition();
+        }
+      }
+    };
+    
+    // Separate function to start recognition
+    const startRecognition = () => {
+      try {
+        // Add a small delay for mobile devices
+        if (isMobile.value) {
+          setTimeout(() => {
+            recognition.start();
+          }, 100);
+        } else {
           recognition.start();
-        } catch (error) {
-          console.error('Recognition start error:', error);
+        }
+      } catch (error) {
+        console.error('Recognition start error:', error);
+        
+        // Handle common mobile errors
+        if (error.name === 'InvalidStateError') {
+          // Recognition is already running, stop and restart
+          recognition.abort();
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch (retryError) {
+              console.error('Failed to restart recognition:', retryError);
+              voiceStatus.value = 'Speech recognition is busy. Please try again.';
+            }
+          }, 200);
+        } else {
           // Recreate recognition instance if it's in a bad state
           setupSpeechRecognition();
-          try {
-            recognition.start();
-          } catch (retryError) {
-            voiceStatus.value = 'Could not start speech recognition';
-            console.error('Failed to restart recognition:', retryError);
+          if (recognition) {
+            try {
+              recognition.start();
+            } catch (retryError) {
+              voiceStatus.value = 'Could not start speech recognition. Please refresh the page and try again.';
+              console.error('Failed to restart recognition:', retryError);
+            }
           }
         }
       }
@@ -297,7 +411,11 @@ export default {
       messages.value = [
         {
           sender: 'bot',
-          text: `Hello ${props.customerData?.name || 'there'}! I'm your voice banking assistant. Click the "Speak" button and ask me a question. I'm here to help with your banking needs.`
+          text: `Hello ${props.customerData?.name || 'there'}! I'm your voice banking assistant. ${
+            isMobile.value 
+              ? 'For best experience on mobile, please use Chrome or Safari browser and allow microphone access when prompted.' 
+              : 'Click the "Speak" button and ask me a question.'
+          } I'm here to help with your banking needs.`
         }
       ];
       
@@ -666,6 +784,13 @@ export default {
   
   .mobile-messages {
     max-height: calc(100vh - 220px);
+  }
+
+  .mobile-notice {
+    padding: 0.5rem;
+    background-color: #fef3c7;
+    border-radius: 0.375rem;
+    margin-top: 0.5rem;
   }
 }
 </style>

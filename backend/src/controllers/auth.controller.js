@@ -300,7 +300,7 @@ const refreshToken = asyncHandler(async (req, res) => {
     }
     
     // Verify the token
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     console.log('Current token verified for user ID:', decoded.id);
       // Generate a new token with the same payload but new expiration
     // Include token_version if it was in the original token

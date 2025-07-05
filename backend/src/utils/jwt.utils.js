@@ -4,7 +4,7 @@ const { ApiError } = require('./error.utils');
 // Generate JWT token from environment variable
 const generateToken = (payload, expiresIn = '24h') => {
   try {
-    // Get JWT_SECRET from environment variable
+    // Use the same secret (with fallback) as token verification
     const secret = process.env.JWT_SECRET;
     console.log('JWT_SECRET check:', {
       envVariableExists: !!process.env.JWT_SECRET,

@@ -72,7 +72,7 @@ class EmailService {  constructor() {    // Log email configuration (without sen
       // Create email content based on transaction type
       let emailContent = '';
       
-      if (type === 'transfer' || type === 'withdrawal') {
+      if (type === 'transfer' || type === 'withdrawal' || type === 'debit') {
         // Debit notification
         emailContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">

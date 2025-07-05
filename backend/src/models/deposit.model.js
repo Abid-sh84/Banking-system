@@ -42,10 +42,8 @@ class DepositModel {
   }
     // Create a fixed deposit
   static async createFixedDeposit(depositData) {
-    // Set the type to fixed
-    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
-    depositDataCopy.type = 'fixed';
-    return this.create(depositDataCopy);
+    // Create the deposit with the existing type (don't override)
+    return this.create(depositData);
   }
   
   // Get all deposits for a customer
@@ -139,26 +137,20 @@ class DepositModel {
   }
     // Get deposits summary (for dashboard metrics)  // Create a recurring deposit
   static async createRecurringDeposit(depositData) {
-    // Set the type to recurring
-    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
-    depositDataCopy.type = 'recurring';
-    return this.create(depositDataCopy);
+    // Create the deposit with the existing type (don't override)
+    return this.create(depositData);
   }
   
   // Create a savings deposit
   static async createSavingsDeposit(depositData) {
-    // Set the type to savings
-    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
-    depositDataCopy.type = 'savings';
-    return this.create(depositDataCopy);
+    // Create the deposit with the existing type (don't override)
+    return this.create(depositData);
   }
   
   // Create a tax saving deposit
   static async createTaxSavingDeposit(depositData) {
-    // Set the type to tax_saving
-    const depositDataCopy = { ...depositData };  // Create a copy to avoid modifying the original
-    depositDataCopy.type = 'tax_saving';
-    return this.create(depositDataCopy);
+    // Create the deposit with the existing type (don't override)
+    return this.create(depositData);
   }
   
   static async getDepositsSummary() {
