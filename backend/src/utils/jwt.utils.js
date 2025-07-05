@@ -33,7 +33,7 @@ const generateToken = (payload, expiresIn = '24h') => {
 const verifyToken = async (token) => {
   try {
     // Use the same secret (with fallback) as token generation
-    const secret = process.env.JWT_SECRET || 'e1f4cf15351809c2e2d5b22016ee8be8224bcc104b4150b4b1d0e507f6b697c9';
+    const secret = process.env.JWT_SECRET;
     
     console.log('JWT verify using secret:', {
       envVariableExists: !!process.env.JWT_SECRET,
