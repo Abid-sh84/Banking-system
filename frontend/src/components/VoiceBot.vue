@@ -63,9 +63,27 @@
           <div class="voice-status">{{ voiceStatus }}</div>
           
           <!-- Mobile compatibility notice -->
-          <div v-if="isMobile" class="mobile-notice">
-            <p class="text-xs text-gray-600 text-center mt-2">
-              📱 For best results: Use Chrome/Safari, allow microphone access, and speak clearly
+          <div v-if="isMobile && !speechSupported" class="mobile-notice error">
+            <p class="text-xs text-red-700 text-center">
+              <span v-if="isIOS">🍎 iOS: Please use Safari 14.5+ for voice features</span>
+              <span v-else-if="isAndroid">🤖 Android: Please use Chrome 90+ for voice features</span>
+              <span v-else>📱 Voice recognition not supported on this browser</span>
+            </p>
+          </div>
+          
+          <div v-else-if="isMobile && microphonePermission === 'denied'" class="mobile-notice warning">
+            <p class="text-xs text-orange-700 text-center">
+              <span v-if="isIOS">🎤 Microphone blocked. Go to Settings > Safari > Microphone</span>
+              <span v-else-if="isAndroid">🎤 Microphone blocked. Tap the mic icon in address bar</span>
+              <span v-else>🎤 Please allow microphone access to use voice features</span>
+            </p>
+          </div>
+          
+          <div v-else-if="isMobile && speechSupported" class="mobile-notice success">
+            <p class="text-xs text-green-700 text-center">
+              <span v-if="isIOS">✅ iOS Safari detected - Voice features ready</span>
+              <span v-else-if="isAndroid">✅ Android Chrome detected - Voice features ready</span>
+              <span v-else>✅ Voice features ready - Tap "Speak" to start</span>
             </p>
           </div>
         </div>
@@ -75,12 +93,29 @@
           <button 
             @click="toggleListening" 
             class="voice-button"
-            :class="{ 'listening': isListening }"
-            :disabled="isProcessing"
+            :class="{ 
+              'listening': isListening,
+              'disabled': !speechSupported,
+              'permission-denied': microphonePermission === 'denied'
+            }"
+            :disabled="isProcessing || (!speechSupported && !isMobile)"
           >
-            <Mic v-if="!isListening" class="h-6 w-6" />
-            <MicOff v-else class="h-6 w-6" />
-            <span>{{ isListening ? 'Stop' : 'Speak' }}</span>
+            <Mic v-if="!isListening && speechSupported" class="h-6 w-6" />
+            <MicOff v-else-if="isListening" class="h-6 w-6" />
+            <X v-else class="h-6 w-6" />
+            
+            <span v-if="speechSupported">
+              {{ isListening ? 'Stop' : 'Speak' }}
+            </span>
+            <span v-else-if="isIOS">
+              Safari Required
+            </span>
+            <span v-else-if="isAndroid">
+              Chrome Required
+            </span>
+            <span v-else>
+              Not Supported
+            </span>
           </button>
         </div>
       </div>
@@ -117,98 +152,249 @@ export default {
     const voiceStatus = ref('Click "Speak" to start');
     const dashboardData = ref(null);
     const isMobile = ref(window.innerWidth <= 768);
+    const isIOS = ref(false);
+    const isAndroid = ref(false);
+    const speechSupported = ref(false);
+    const microphonePermission = ref('unknown'); // 'unknown', 'granted', 'denied'
+    
+    // Enhanced mobile device detection
+    const detectDevice = () => {
+      const userAgent = navigator.userAgent;
+      const width = window.innerWidth;
+      
+      isMobile.value = width <= 768;
+      isIOS.value = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+      isAndroid.value = /Android/.test(userAgent);
+      
+      // Check for speech recognition support
+      speechSupported.value = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+    };
     
     // Function to handle window resize
     const handleResize = () => {
-      isMobile.value = window.innerWidth <= 768;
+      detectDevice();
     };
     
     // Speech recognition setup
     let recognition = null;
+    let recognitionTimeout = null;
     
     // Speech synthesis setup
     const synth = window.speechSynthesis;
     
-    // Setup speech recognition
+    // Enhanced microphone permission check
+    const checkMicrophonePermission = async () => {
+      if (!navigator.permissions) {
+        return 'unknown';
+      }
+      
+      try {
+        const permission = await navigator.permissions.query({ name: 'microphone' });
+        microphonePermission.value = permission.state;
+        
+        permission.addEventListener('change', () => {
+          microphonePermission.value = permission.state;
+        });
+        
+        return permission.state;
+      } catch (error) {
+        console.warn('Could not check microphone permission:', error);
+        return 'unknown';
+      }
+    };
+    
+    // Request microphone access with better mobile handling
+    const requestMicrophoneAccess = async () => {
+      try {
+        // For iOS, we need to explicitly request permission
+        if (isIOS.value) {
+          // iOS requires user interaction before accessing microphone
+          await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 44100
+            } 
+          }).then(stream => {
+            // Stop the stream immediately, we just needed permission
+            stream.getTracks().forEach(track => track.stop());
+            microphonePermission.value = 'granted';
+            return true;
+          });
+        } else if (isAndroid.value) {
+          // Android Chrome handling
+          await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            } 
+          }).then(stream => {
+            stream.getTracks().forEach(track => track.stop());
+            microphonePermission.value = 'granted';
+            return true;
+          });
+        } else {
+          // Desktop/other browsers
+          await navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            stream.getTracks().forEach(track => track.stop());
+            microphonePermission.value = 'granted';
+            return true;
+          });
+        }
+        return true;
+      } catch (error) {
+        console.error('Microphone access denied:', error);
+        microphonePermission.value = 'denied';
+        return false;
+      }
+    };
+    
+    // Setup speech recognition with enhanced mobile support
     const setupSpeechRecognition = () => {
-      // Check for speech recognition support with better mobile compatibility
-      if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      if (!speechSupported.value) {
+        const deviceInfo = isIOS.value ? 'iOS Safari' : isAndroid.value ? 'Android Chrome' : 'this browser';
+        voiceStatus.value = `Speech recognition not supported on ${deviceInfo}. Please try a different browser.`;
+        return false;
+      }
+      
+      try {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
+        
+        // Enhanced configuration for all devices
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
         
-        // Mobile-specific settings
-        if (isMobile.value) {
+        // Device-specific settings
+        if (isIOS.value) {
+          // iOS Safari specific settings
           recognition.maxAlternatives = 1;
-          // Set longer timeout for mobile
-          recognition.grammars = null;
+        } 
+        else if (isAndroid.value) {
+          // Android Chrome specific settings
+          recognition.maxAlternatives = 1;
+        } 
+        else {
+          // Desktop settings - more alternatives for better accuracy
+          recognition.maxAlternatives = 5;
         }
+        
+        console.log('Speech recognition setup completed for:', isIOS.value ? 'iOS' : isAndroid.value ? 'Android' : 'Desktop');
         
         recognition.onstart = () => {
           isListening.value = true;
-          voiceStatus.value = 'Listening...';
+          voiceStatus.value = 'Listening... Speak now';
           console.log('Speech recognition started');
+          
+          // Set a timeout for all devices to prevent hanging
+          recognitionTimeout = setTimeout(() => {
+            if (isListening.value) {
+              recognition.abort();
+              voiceStatus.value = 'Listening timeout. Please try again.';
+            }
+          }, isMobile.value ? 10000 : 15000); // 10 seconds for mobile, 15 for desktop
         };
         
         recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          voiceStatus.value = 'Processing...';
-          console.log('Speech recognized:', transcript);
+          if (recognitionTimeout) {
+            clearTimeout(recognitionTimeout);
+            recognitionTimeout = null;
+          }
           
-          // Add user message
-          messages.value.push({
-            sender: 'user',
-            text: transcript
-          });
+          const transcript = event.results[0][0].transcript.trim();
+          const confidence = event.results[0][0].confidence || 1.0; // Default to 1.0 if confidence not provided
           
-          // Process user's voice input
-          processVoiceInput(transcript);
+          voiceStatus.value = 'Processing your request...';
+          console.log('Speech recognized:', transcript, 'Confidence:', confidence);
+          
+          // Process speech if transcript exists and meets confidence threshold
+          // Lower threshold for mobile devices, standard threshold for desktop
+          const minConfidence = isMobile.value ? 0.3 : 0.5;
+          
+          if (transcript && transcript.length > 0 && confidence >= minConfidence) {
+            // Add user message
+            messages.value.push({
+              sender: 'user',
+              text: transcript
+            });
+            
+            // Process user's voice input
+            processVoiceInput(transcript);
+          } else {
+            console.log('Speech rejected - Transcript:', transcript, 'Confidence:', confidence, 'Required:', minConfidence);
+            voiceStatus.value = 'Could not understand clearly. Please speak louder and try again.';
+            isListening.value = false;
+          }
         };
         
         recognition.onerror = (event) => {
           console.error('Speech recognition error:', event.error);
           isListening.value = false;
           
-          // Provide more specific error messages for mobile issues
+          if (recognitionTimeout) {
+            clearTimeout(recognitionTimeout);
+            recognitionTimeout = null;
+          }
+          
+          // Enhanced error handling for mobile devices
           switch(event.error) {
             case 'not-allowed':
-              voiceStatus.value = 'Microphone access denied. Please allow microphone access and try again.';
+              microphonePermission.value = 'denied';
+              if (isIOS.value) {
+                voiceStatus.value = 'Microphone access denied. Go to Settings > Safari > Microphone and allow access.';
+              } else if (isAndroid.value) {
+                voiceStatus.value = 'Microphone access denied. Tap the microphone icon in the address bar to allow access.';
+              } else {
+                voiceStatus.value = 'Microphone access denied. Please allow microphone access and try again.';
+              }
               break;
             case 'no-speech':
-              voiceStatus.value = 'No speech detected. Please try speaking clearly.';
+              voiceStatus.value = 'No speech detected. Please speak clearly and try again.';
               break;
             case 'audio-capture':
-              voiceStatus.value = 'Microphone not available. Please check your device.';
+              voiceStatus.value = 'Microphone not available. Please check your device settings.';
               break;
             case 'network':
-              voiceStatus.value = 'Network error. Please check your connection.';
+              voiceStatus.value = 'Network error. Please check your internet connection.';
+              break;
+            case 'service-not-allowed':
+              voiceStatus.value = 'Speech service not available. Please try again later.';
+              break;
+            case 'bad-grammar':
+              voiceStatus.value = 'Speech recognition error. Please try again.';
               break;
             default:
-              voiceStatus.value = `Error: ${event.error}. Try again.`;
+              voiceStatus.value = `Speech error (${event.error}). Please try again.`;
           }
         };
         
         recognition.onend = () => {
           isListening.value = false;
-          if (voiceStatus.value === 'Listening...') {
-            voiceStatus.value = 'No speech detected. Try again.';
+          
+          if (recognitionTimeout) {
+            clearTimeout(recognitionTimeout);
+            recognitionTimeout = null;
+          }
+          
+          console.log('Speech recognition ended. Status was:', voiceStatus.value);
+          
+          if (voiceStatus.value === 'Listening... Speak now') {
+            voiceStatus.value = 'No speech detected. Click "Speak" to try again.';
           }
         };
-      } else {
-        // Better mobile support detection
-        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobileDevice) {
-          voiceStatus.value = 'Voice recognition may not be supported on this mobile browser. Try using Chrome or Safari.';
-        } else {
-          voiceStatus.value = 'Speech recognition not supported in this browser.';
-        }
-        console.error('Speech Recognition API not supported in this browser');
+        
+        return true;
+      } catch (error) {
+        console.error('Failed to setup speech recognition:', error);
+        voiceStatus.value = 'Speech recognition setup failed. Please refresh and try again.';
+        return false;
       }
     };
     
-    // Function to speak text with mobile optimizations
+    // Enhanced speech synthesis with mobile optimizations
     const speakText = (text) => {
       // Check if speech synthesis is available
       if (!synth) {
@@ -228,28 +414,89 @@ export default {
       if (!cleanText.trim()) return;
       
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'en-US';
-      utterance.rate = isMobile.value ? 0.9 : 1.0; // Slightly slower on mobile
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
       
-      // Mobile-specific settings
-      if (isMobile.value) {
-        // Add error handling for mobile speech synthesis
-        utterance.onerror = (event) => {
-          console.error('Speech synthesis error:', event.error);
-        };
+      // Enhanced settings for different devices
+      if (isIOS.value) {
+        // iOS Safari specific settings
+        utterance.lang = 'en-US';
+        utterance.rate = 0.8; // Slower for better clarity on iOS
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
         
-        utterance.onend = () => {
-          console.log('Speech synthesis completed');
-        };
+        // iOS often has limited voices, use default
+        const voices = synth.getVoices();
+        const englishVoice = voices.find(voice => voice.lang.startsWith('en'));
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+        }
+      } else if (isAndroid.value) {
+        // Android Chrome specific settings
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        // Try to find a good English voice
+        const voices = synth.getVoices();
+        const englishVoice = voices.find(voice => 
+          voice.lang.startsWith('en') && !voice.name.includes('eSpeak')
+        );
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+        }
+      } else {
+        // Desktop settings
+        utterance.lang = 'en-US';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
       }
       
-      // Handle potential mobile limitations
+      // Enhanced error handling for mobile devices
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error);
+        
+        if (isMobile.value && event.error === 'not-allowed') {
+          // Some mobile browsers require user interaction for speech synthesis
+          console.warn('Speech synthesis blocked - requires user interaction');
+        }
+      };
+      
+      utterance.onend = () => {
+        console.log('Speech synthesis completed');
+      };
+      
+      utterance.onstart = () => {
+        console.log('Speech synthesis started');
+      };
+      
+      // Handle potential mobile limitations with retry mechanism
       try {
-        synth.speak(utterance);
+        // For iOS, sometimes we need to wait for voices to load
+        if (isIOS.value && synth.getVoices().length === 0) {
+          setTimeout(() => {
+            try {
+              synth.speak(utterance);
+            } catch (retryError) {
+              console.error('Failed to speak after retry:', retryError);
+            }
+          }, 100);
+        } else {
+          synth.speak(utterance);
+        }
       } catch (error) {
         console.error('Failed to speak text:', error);
+        
+        // Retry once for mobile devices
+        if (isMobile.value) {
+          setTimeout(() => {
+            try {
+              synth.speak(utterance);
+            } catch (retryError) {
+              console.error('Speech synthesis retry failed:', retryError);
+            }
+          }, 500);
+        }
       }
     };
     
@@ -277,77 +524,176 @@ export default {
       }
     };
     
-    // Toggle listening state with mobile optimizations
-    const toggleListening = () => {
-      if (!recognition) {
-        setupSpeechRecognition();
-      }
+    // Enhanced toggle listening with better mobile support
+    const toggleListening = async () => {
+      console.log('Toggle listening called. Current state:', {
+        isListening: isListening.value,
+        speechSupported: speechSupported.value,
+        microphonePermission: microphonePermission.value,
+        isIOS: isIOS.value,
+        isAndroid: isAndroid.value,
+        isMobile: isMobile.value
+      });
       
-      // Check if recognition is available
-      if (!recognition) {
-        voiceStatus.value = 'Speech recognition not available on this device';
+      // Check speech recognition support first
+      if (!speechSupported.value) {
+        let message = 'Speech recognition not supported. ';
+        if (isIOS.value) {
+          message += 'Please use Safari browser on iOS 14.5 or later.';
+        } else if (isAndroid.value) {
+          message += 'Please use Chrome browser on Android 7.0 or later.';
+        } else {
+          message += 'Please use a modern browser like Chrome, Edge, or Firefox.';
+        }
+        voiceStatus.value = message;
         return;
       }
       
+      // If currently listening, stop
       if (isListening.value) {
-        recognition.abort();
-        isListening.value = false;
-        voiceStatus.value = 'Listening stopped';
-      } else {
-        // Request microphone permission explicitly on mobile
-        if (isMobile.value && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(() => {
-              startRecognition();
-            })
-            .catch((error) => {
-              console.error('Microphone permission denied:', error);
-              voiceStatus.value = 'Microphone access required. Please allow microphone access in your browser settings.';
-            });
-        } else {
-          startRecognition();
+        if (recognition) {
+          recognition.abort();
         }
+        if (recognitionTimeout) {
+          clearTimeout(recognitionTimeout);
+          recognitionTimeout = null;
+        }
+        isListening.value = false;
+        voiceStatus.value = 'Listening stopped. Click "Speak" to start again.';
+        return;
+      }
+      
+      // Check and request microphone permission
+      if (microphonePermission.value === 'denied') {
+        if (isIOS.value) {
+          voiceStatus.value = 'Microphone blocked. Go to Settings > Safari > Microphone and allow access, then refresh the page.';
+        } else if (isAndroid.value) {
+          voiceStatus.value = 'Microphone blocked. Tap the microphone icon in your browser\'s address bar to allow access.';
+        } else {
+          voiceStatus.value = 'Microphone access denied. Please allow microphone access in your browser settings.';
+        }
+        return;
+      }
+      
+      // Request microphone access if needed
+      if (microphonePermission.value !== 'granted') {
+        voiceStatus.value = 'Requesting microphone access...';
+        const hasAccess = await requestMicrophoneAccess();
+        
+        if (!hasAccess) {
+          if (isIOS.value) {
+            voiceStatus.value = 'Microphone access required. Please allow microphone access when prompted.';
+          } else if (isAndroid.value) {
+            voiceStatus.value = 'Please allow microphone access to use voice features.';
+          } else {
+            voiceStatus.value = 'Microphone access denied. Please click the microphone icon in your browser\'s address bar and allow access.';
+          }
+          return;
+        }
+      }
+      
+      // Setup recognition if needed
+      if (!recognition) {
+        const setupSuccess = setupSpeechRecognition();
+        if (!setupSuccess) {
+          return;
+        }
+      }
+      
+      // Start recognition with enhanced error handling
+      startRecognition();
+    };
+    
+    // Enhanced recognition start with mobile optimizations
+    const startRecognition = () => {
+      if (!recognition) {
+        voiceStatus.value = 'Speech recognition not available. Please try refreshing the page.';
+        return;
+      }
+      
+      try {
+        // Prevent multiple instances
+        if (isListening.value) {
+          recognition.abort();
+          
+          // Wait a bit before restarting
+          setTimeout(() => {
+            startRecognition();
+          }, 200);
+          return;
+        }
+        
+        // Mobile-specific delays and handling
+        if (isIOS.value) {
+          // iOS Safari sometimes needs a longer delay
+          voiceStatus.value = 'Preparing microphone...';
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch (error) {
+              handleRecognitionStartError(error);
+            }
+          }, 300);
+        } else if (isAndroid.value) {
+          // Android Chrome optimization
+          voiceStatus.value = 'Starting voice recognition...';
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch (error) {
+              handleRecognitionStartError(error);
+            }
+          }, 100);
+        } else {
+          // Desktop - start immediately with better error handling
+          try {
+            recognition.start();
+          } catch (error) {
+            handleRecognitionStartError(error);
+          }
+        }
+      } catch (error) {
+        handleRecognitionStartError(error);
       }
     };
     
-    // Separate function to start recognition
-    const startRecognition = () => {
-      try {
-        // Add a small delay for mobile devices
-        if (isMobile.value) {
-          setTimeout(() => {
-            recognition.start();
-          }, 100);
-        } else {
-          recognition.start();
-        }
-      } catch (error) {
-        console.error('Recognition start error:', error);
+    // Handle recognition start errors
+    const handleRecognitionStartError = (error) => {
+      console.error('Recognition start error:', error);
+      isListening.value = false;
+      
+      if (error.name === 'InvalidStateError') {
+        // Recognition is already running or in bad state
+        voiceStatus.value = 'Speech recognition is busy. Please wait and try again.';
         
-        // Handle common mobile errors
-        if (error.name === 'InvalidStateError') {
-          // Recognition is already running, stop and restart
-          recognition.abort();
-          setTimeout(() => {
-            try {
-              recognition.start();
-            } catch (retryError) {
-              console.error('Failed to restart recognition:', retryError);
-              voiceStatus.value = 'Speech recognition is busy. Please try again.';
-            }
-          }, 200);
-        } else {
-          // Recreate recognition instance if it's in a bad state
-          setupSpeechRecognition();
+        // Try to reset and restart
+        setTimeout(() => {
           if (recognition) {
-            try {
-              recognition.start();
-            } catch (retryError) {
-              voiceStatus.value = 'Could not start speech recognition. Please refresh the page and try again.';
-              console.error('Failed to restart recognition:', retryError);
-            }
+            recognition.abort();
+            setTimeout(() => {
+              const setupSuccess = setupSpeechRecognition();
+              if (setupSuccess) {
+                voiceStatus.value = 'Ready to listen. Click "Speak" to try again.';
+              }
+            }, 500);
           }
+        }, 1000);
+      } else if (error.name === 'NotAllowedError') {
+        microphonePermission.value = 'denied';
+        if (isIOS.value) {
+          voiceStatus.value = 'Microphone blocked. Check Safari settings and refresh the page.';
+        } else if (isAndroid.value) {
+          voiceStatus.value = 'Microphone blocked. Allow access in browser settings.';
+        } else {
+          voiceStatus.value = 'Microphone access denied. Please allow access and try again.';
         }
+      } else {
+        voiceStatus.value = 'Could not start voice recognition. Please try again.';
+        
+        // Attempt to recreate recognition
+        setTimeout(() => {
+          setupSpeechRecognition();
+        }, 1000);
       }
     };
     
@@ -402,25 +748,82 @@ export default {
     });
     
     // Load initial welcome message
-    onMounted(() => {
+    onMounted(async () => {
+      // Detect device capabilities
+      detectDevice();
+      
+      // Check microphone permission on mount
+      await checkMicrophonePermission();
+      
+      // Add debugging function to window for testing (only in development)
+      if (process.env.NODE_ENV === 'development' || true) {
+        window.debugVoiceBot = {
+          testSpeechRecognition: () => {
+            console.log('Testing speech recognition...');
+            console.log('Speech supported:', speechSupported.value);
+            console.log('User agent:', navigator.userAgent);
+            console.log('Device detection:', {
+              isMobile: isMobile.value,
+              isIOS: isIOS.value,
+              isAndroid: isAndroid.value
+            });
+            
+            if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+              console.log('SpeechRecognition API available');
+              const testRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+              console.log('Test recognition object created:', testRecognition);
+            } else {
+              console.log('SpeechRecognition API not available');
+            }
+          },
+          getCurrentState: () => ({
+            isListening: isListening.value,
+            isProcessing: isProcessing.value,
+            speechSupported: speechSupported.value,
+            microphonePermission: microphonePermission.value,
+            voiceStatus: voiceStatus.value
+          })
+        };
+      }
+      
       // If opened by default, register as active assistant
       if (isOpen.value) {
         AssistantStateService.setActiveAssistant('voice');
       }
       
+      // Create device-specific welcome message
+      let welcomeMessage = `Hello ${props.customerData?.name || 'there'}! I'm your voice banking assistant. `;
+      
+      if (!speechSupported.value) {
+        if (isIOS.value) {
+          welcomeMessage += 'Speech recognition requires Safari browser on iOS 14.5+. You can still type your questions!';
+        } else if (isAndroid.value) {
+          welcomeMessage += 'Speech recognition requires Chrome browser on Android 7.0+. You can still type your questions!';
+        } else {
+          welcomeMessage += 'Speech recognition is not supported in this browser. Please use Chrome or Safari.';
+        }
+      } else if (isMobile.value) {
+        if (isIOS.value) {
+          welcomeMessage += 'For best results on iOS: Use Safari, allow microphone access when prompted, and speak clearly.';
+        } else if (isAndroid.value) {
+          welcomeMessage += 'For best results on Android: Use Chrome, allow microphone access when prompted, and speak clearly.';
+        } else {
+          welcomeMessage += 'For best mobile experience: Allow microphone access when prompted and speak clearly.';
+        }
+      } else {
+        welcomeMessage += 'Click the "Speak" button and ask me anything about your banking needs.';
+      }
+      
+      welcomeMessage += ' I\'m here to help!';
+      
       messages.value = [
         {
           sender: 'bot',
-          text: `Hello ${props.customerData?.name || 'there'}! I'm your voice banking assistant. ${
-            isMobile.value 
-              ? 'For best experience on mobile, please use Chrome or Safari browser and allow microphone access when prompted.' 
-              : 'Click the "Speak" button and ask me a question.'
-          } I'm here to help with your banking needs.`
+          text: welcomeMessage
         }
       ];
       
       // Setup responsive behavior
-      // Add resize event listener
       window.addEventListener('resize', handleResize);
       
       // Set basic customer data without making API request
@@ -432,18 +835,48 @@ export default {
           transactions: []
         }
       };
+      
+      // Initialize speech synthesis voices for mobile
+      if (isMobile.value && synth) {
+        // Force load voices on mobile
+        const loadVoices = () => {
+          const voices = synth.getVoices();
+          if (voices.length > 0) {
+            console.log('Speech synthesis voices loaded:', voices.length);
+          }
+        };
         
-      // Initial check for mobile
-      handleResize();
+        if (synth.addEventListener) {
+          synth.addEventListener('voiceschanged', loadVoices);
+        }
+        
+        // Trigger voices loading
+        loadVoices();
+      }
     });
     
     // Clean up speech resources and event listeners on component unmount
     onBeforeUnmount(() => {
-      if (synth.speaking) synth.cancel();
+      if (synth && synth.speaking) {
+        synth.cancel();
+      }
+      
       if (recognition) {
         recognition.abort();
+        recognition = null;
       }
+      
+      if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout);
+        recognitionTimeout = null;
+      }
+      
       window.removeEventListener('resize', handleResize);
+      
+      // Clear assistant state
+      if (isOpen.value) {
+        AssistantStateService.clearActiveAssistant();
+      }
     });
     
     // Watch for new messages to scroll to bottom
@@ -470,7 +903,11 @@ export default {
       toggleVoice,
       toggleListening,
       formatMessage,
-      isMobile
+      isMobile,
+      isIOS,
+      isAndroid,
+      speechSupported,
+      microphonePermission
     };
   }
 };
@@ -710,24 +1147,51 @@ export default {
   transition: all 0.2s ease;
   width: 5.5rem;
   height: 5.5rem;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .voice-button.listening {
   background-color: #ef4444;
+  animation: pulse 2s infinite;
 }
 
-.voice-button:hover:not(:disabled) {
+.voice-button.disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.voice-button.permission-denied {
+  background-color: #f59e0b;
+}
+
+.voice-button:hover:not(:disabled):not(.disabled) {
   transform: scale(1.05);
 }
 
+.voice-button:active {
+  transform: scale(0.95);
+}
+
 .voice-button:disabled {
-  background-color: #d1d5db;
   cursor: not-allowed;
+  transform: none;
 }
 
 .voice-button span {
   font-size: 0.75rem;
   margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% { 
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
 }
 
 /* Mobile responsive styles */
@@ -748,11 +1212,22 @@ export default {
     max-height: 100vh;
     border-radius: 0;
     z-index: 1001;
+    /* Prevent bounce scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
   }
   
   .voicebot-header {
     padding: 1rem;
     position: relative;
+    /* Ensure header stays fixed on iOS */
+    flex-shrink: 0;
+  }
+  
+  .voicebot-content {
+    /* Fix for iOS Safari viewport units */
+    height: calc(100vh - 120px);
+    height: calc(100dvh - 120px); /* Dynamic viewport height for modern browsers */
   }
   
   .mobile-close-button {
@@ -775,6 +1250,9 @@ export default {
 
   .voice-controls {
     padding-bottom: 2rem;
+    /* Safe area for iOS devices with home indicator */
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+    flex-shrink: 0;
   }
   
   .voice-button {
@@ -788,9 +1266,74 @@ export default {
 
   .mobile-notice {
     padding: 0.5rem;
-    background-color: #fef3c7;
     border-radius: 0.375rem;
     margin-top: 0.5rem;
+    text-align: center;
+  }
+
+  .mobile-notice.success {
+    background-color: #d1fae5;
+    border: 1px solid #a7f3d0;
+  }
+
+  .mobile-notice.warning {
+    background-color: #fef3c7;
+    border: 1px solid #fde68a;
+  }
+
+  .mobile-notice.error {
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+  }
+
+  .voice-button {
+    width: 6rem;
+    height: 6rem;
+    font-size: 0.875rem;
+  }
+
+  .voice-button span {
+    font-size: 0.6875rem;
+  }
+
+  /* Enhanced touch targets for mobile */
+  .voicebot-button {
+    width: 4rem;
+    height: 4rem;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .mobile-close-button {
+    width: 2.5rem;
+    height: 2.5rem;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Improve scrolling on mobile */
+  .mobile-messages {
+    max-height: calc(100vh - 280px);
+    max-height: calc(100dvh - 280px);
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+
+  /* Prevent zoom on input focus for iOS */
+  .voicebot-window * {
+    font-size: 16px !important;
+  }
+  
+  /* iOS Safari specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    .voicebot-window {
+      /* Fix for iOS Safari viewport */
+      height: -webkit-fill-available;
+    }
+    
+    .voicebot-content {
+      height: calc(-webkit-fill-available - 120px);
+    }
   }
 }
 </style>
