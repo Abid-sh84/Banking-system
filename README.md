@@ -1,6 +1,6 @@
 # Banking System (Modern Bank India)
 
-A full-stack banking application with customer and banker portals, virtual card management, transaction processing, deposit handling, and chatbot functionality.
+A full-stack banking application with customer and banker portals, virtual card management, transaction processing, deposit handling, AI-powered chatbot, and advanced voice assistant functionality.
 
 ![version](https://img.shields.io/badge/version-1.0.0-blue) ![license](https://img.shields.io/badge/license-MIT-green) ![last-commit](https://img.shields.io/badge/last%20commit-June%202025-brightgreen)
 
@@ -29,6 +29,7 @@ A full-stack banking application with customer and banker portals, virtual card 
 
 - **Additional Features**
   - 💬 AI-Powered ChatBot using OpenRouter Deepseek model for intelligent customer assistance
+  - 🎤 **Voice Assistant** with advanced speech recognition and text-to-speech capabilities
   - 📊 CIBIL score assessment
   - ⏱️ Activity timeline and transaction history
   - 📈 Performance metrics and analytics
@@ -44,12 +45,14 @@ A full-stack banking application with customer and banker portals, virtual card 
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![Speech API](https://img.shields.io/badge/Web_Speech_API-4285F4?style=for-the-badge&logo=google&logoColor=white)
 
 ### Backend Technologies
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=json-web-tokens&logoColor=white)
+![OpenRouter AI](https://img.shields.io/badge/OpenRouter_AI-FF6B6B?style=for-the-badge&logo=openai&logoColor=white)
 
 ### Development & Deployment Tools
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
@@ -97,6 +100,13 @@ A full-stack banking application with customer and banker portals, virtual card 
   </tr>
   <tr>
     <td>ChatBot</td>
+    <td>✅ Complete</td>
+    <td>
+      <img src="https://img.shields.io/badge/100%25-brightgreen?style=flat-square&logo=checkmarx&logoColor=white&label=completed" alt="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td>Voice Assistant</td>
     <td>✅ Complete</td>
     <td>
       <img src="https://img.shields.io/badge/100%25-brightgreen?style=flat-square&logo=checkmarx&logoColor=white&label=completed" alt="100%" />
@@ -193,6 +203,8 @@ A full-stack banking application with customer and banker portals, virtual card 
 - Transaction initiation and history
 - Virtual card management
 - Deposit creation and tracking
+- AI-powered chatbot assistance
+- Voice assistant for hands-free banking
 
 ### Banker Portal
 - Customer account management
@@ -209,6 +221,7 @@ The API provides endpoints for:
 - Deposit handling
 - Customer information
 - Chatbot interactions
+- Voice assistant integration
 
 ## 🤖 AI-Powered Chatbot
 
@@ -232,6 +245,50 @@ To configure the chatbot, ensure the following environment variable is set in yo
 ```
 OPENROUTER_API_KEY=your_api_key_here
 ```
+
+## 🎤 Voice Assistant
+
+The application includes an advanced voice assistant that provides hands-free banking support with cutting-edge speech recognition and text-to-speech capabilities.
+
+### Key Features
+- **🎙️ Advanced Speech Recognition**: Real-time voice input processing with high accuracy
+- **🔊 Text-to-Speech Synthesis**: Natural voice responses with customizable settings
+- **📱 Cross-Platform Compatibility**: Optimized for desktop, iOS Safari, and Android Chrome
+- **🎯 Context-Aware Responses**: Integrated with the AI chatbot for intelligent voice conversations
+- **🔒 Privacy-First**: Voice processing respects user privacy with secure microphone handling
+
+### Device Support
+- **Desktop**: Full feature support on Chrome, Edge, Firefox, and Safari
+- **iOS**: Optimized for Safari 14.5+ with enhanced mobile experience
+- **Android**: Optimized for Chrome 90+ with improved speech recognition
+- **Mobile Features**: Touch-optimized interface with responsive design
+
+### Voice Capabilities
+- **Microphone Management**: Automatic permission handling with clear user guidance
+- **Real-time Feedback**: Visual indicators for listening state and voice activity
+- **Error Handling**: Comprehensive error management with helpful troubleshooting
+- **Timeout Protection**: Smart timeout handling to prevent hanging sessions
+- **Background Processing**: Non-blocking voice processing for smooth user experience
+
+### Technical Implementation
+- **Speech Recognition API**: Utilizes Web Speech API with WebKit fallbacks
+- **Speech Synthesis API**: Advanced text-to-speech with voice customization
+- **Mobile Optimization**: Enhanced audio settings for different devices
+- **Confidence Thresholds**: Adaptive speech recognition accuracy based on device type
+- **State Management**: Robust state handling for voice sessions and permissions
+
+### Usage
+1. Click the voice assistant button (phone icon) in the bottom-right corner
+2. Allow microphone access when prompted
+3. Click "Speak" and ask your banking questions
+4. Receive spoken responses along with visual text
+5. Continue the conversation naturally with follow-up questions
+
+### Browser Requirements
+- **Chrome/Edge**: Version 80+ (recommended)
+- **Safari**: Version 14.5+ (iOS/macOS)
+- **Firefox**: Version 90+ (limited support)
+- **Mobile**: Latest versions of Safari (iOS) or Chrome (Android)
 
 ## 📊 Live Demo
 
