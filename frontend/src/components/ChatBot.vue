@@ -14,7 +14,7 @@
     <!-- Chat window -->
     <div v-if="isOpen" class="chatbot-window">      <!-- Chat header -->
       <div class="chatbot-header">
-        <div class="flex items-center">
+        <div class="flex items-center flex-1">
           <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
             <Bot class="h-5 w-5 text-blue-600" />
           </div>
@@ -23,7 +23,7 @@
             <span class="text-xs text-gray-500">Powered by Deepseek AI</span>
           </div>
         </div>
-        <div class="flex flex-col items-end">
+        <div v-if="!isMobile" class="flex flex-col items-end">
           <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
           <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full mt-1">AI-Powered</span>
         </div>
@@ -721,12 +721,15 @@ export default {
   .chatbot-header {
     padding: 1rem;
     position: relative;
+    /* Add right padding to make space for close button */
+    padding-right: 3.5rem;
   }
   
   .mobile-close-button {
     position: absolute;
-    top: 1rem;
+    top: 50%;
     right: 1rem;
+    transform: translateY(-50%);
     background-color: #ef4444;
     color: white;
     border-radius: 50%;
@@ -739,6 +742,7 @@ export default {
     border: none;
     outline: none;
     z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .chatbot-messages {
