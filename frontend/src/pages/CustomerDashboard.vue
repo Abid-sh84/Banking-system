@@ -622,7 +622,7 @@ const fetchData = async () => {
       // Use our fetchCustomerData function to get profile information
       await fetchCustomerData();
       
-      // Show notification based on account status
+      // Show the notification based on the current account status
       if (accountStatus.value === 'frozen') {
         toast.warning('Your account is frozen. You can view your account details, but transactions are disabled.');
       } else if (accountStatus.value === 'inactive') {
