@@ -1,23 +1,7 @@
 <!-- filepath: c:\Users\Shamim shaikh\Desktop\Assignment\project\frontend\src\pages\AboutUs.vue -->
 <template>
   <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100">
-    <!-- Header with bank logo -->
-    <!-- <header class="bg-white shadow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-        <router-link to="/" class="flex items-center">
-          <div class="h-10 w-10 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full flex items-center justify-center shadow-md">
-            <span class="text-white text-lg font-bold">MB</span>
-          </div>
-          <span class="ml-3 text-xl font-semibold text-gray-900">Modern Bank</span>
-        </router-link>
-        <div class="hidden md:block">
-          <router-link to="/" class="px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
-            Home
-          </router-link>
-        </div>
-      </div>
-    </header>
-     -->
+   
     <!-- Hero Section -->
     <div class="py-12 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
