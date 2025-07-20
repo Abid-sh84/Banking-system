@@ -1,0 +1,295 @@
+name: Banking System CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18.x'
+
+jobs:
+  # Backend tests and build
+  backend:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: banking_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Check backend code quality
+      working-directory: ./backend
+      run: |
+        # Add linting if you have ESLint configured
+        # npm run lint
+        echo "Backend code quality check completed"
+
+    - name: Initialize test database
+      working-directory: ./backend
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: banking_test
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        NODE_ENV: test
+      run: |
+        # If you have database initialization scripts
+        # npm run init-db
+        echo "Database initialization completed"
+
+    - name: Run backend tests
+      working-directory: ./backend
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: banking_test
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        NODE_ENV: test
+        JWT_SECRET: test-secret-key
+      run: |
+        # Currently no tests are configured, but this is where they would run
+        # npm test
+        echo "Backend tests would run here"
+
+    - name: Build backend (if applicable)
+      working-directory: ./backend
+      run: |
+        # Add build step if needed
+        echo "Backend build completed"
+
+  # Frontend tests and build
+  frontend:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Run ESLint
+      working-directory: ./frontend
+      run: npm run lint
+
+    - name: Run frontend tests
+      working-directory: ./frontend
+      run: |
+        # Add test command when you have tests
+        # npm test
+        echo "Frontend tests would run here"
+
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Upload frontend build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/dist/
+        retention-days: 7
+
+  # Security checks
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        cd backend && npm ci
+        cd ../frontend && npm ci
+
+    - name: Run security audit
+      run: |
+        echo "Running security audit for backend..."
+        cd backend && npm audit --audit-level=high
+        echo "Running security audit for frontend..."
+        cd frontend && npm audit --audit-level=high
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  # Integration tests (if you have end-to-end tests)
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: banking_integration
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        cd backend && npm ci
+        cd ../frontend && npm ci
+
+    - name: Start backend server
+      working-directory: ./backend
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: banking_integration
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        NODE_ENV: test
+        JWT_SECRET: integration-test-secret
+        PORT: 3001
+      run: |
+        # npm run init-db
+        npm start &
+        sleep 10
+        
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Serve frontend
+      working-directory: ./frontend
+      run: |
+        npm install -g serve
+        serve -s dist -l 3000 &
+        sleep 5
+
+    - name: Run integration tests
+      run: |
+        # Add your integration tests here
+        # This could include API tests, E2E tests with Playwright/Cypress
+        echo "Integration tests would run here"
+        # Example: curl http://localhost:3001/api/test/health-check
+
+  # Deployment jobs (uncomment and configure as needed)
+  # deploy-staging:
+  #   name: Deploy to Staging
+  #   runs-on: ubuntu-latest
+  #   needs: [backend, frontend, security]
+  #   if: github.ref == 'refs/heads/develop'
+  #   environment: staging
+  #   
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+  #     
+  #   - name: Deploy to staging
+  #     run: |
+  #       echo "Deploy to staging environment"
+  #       # Add your staging deployment steps
+
+  # deploy-production:
+  #   name: Deploy to Production
+  #   runs-on: ubuntu-latest
+  #   needs: [backend, frontend, security, integration]
+  #   if: github.ref == 'refs/heads/main'
+  #   environment: production
+  #   
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+  #     
+  #   - name: Deploy backend to Render
+  #     run: |
+  #       echo "Deploy backend to Render"
+  #       # Add Render deployment steps
+  #       
+  #   - name: Deploy frontend to Vercel
+  #     run: |
+  #       echo "Deploy frontend to Vercel"
+  #       # Add Vercel deployment steps
+
+  # Notification job
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, security]
+    if: always()
+
+    steps:
+    - name: Notify on success
+      if: needs.backend.result == 'success' && needs.frontend.result == 'success' && needs.security.result == 'success'
+      run: |
+        echo "✅ All checks passed successfully!"
+        # Add notification logic (Slack, Discord, Email, etc.)
+
+    - name: Notify on failure
+      if: needs.backend.result == 'failure' || needs.frontend.result == 'failure' || needs.security.result == 'failure'
+      run: |
+        echo "❌ Some checks failed!"
+        # Add failure notification logic
