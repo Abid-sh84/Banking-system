@@ -39,15 +39,11 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
 
     - name: Install backend dependencies
       working-directory: ./backend
-      run: |
-        if [ -f package-lock.json ]; then
-          npm ci
-        else
-          npm install
-        fi
+      run: npm ci
 
     - name: Check backend code quality
       working-directory: ./backend
@@ -105,15 +101,11 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
 
     - name: Install frontend dependencies
       working-directory: ./frontend
-      run: |
-        if [ -f package-lock.json ]; then
-          npm ci
-        else
-          npm install
-        fi
+      run: npm ci
 
     - name: Run ESLint
       working-directory: ./frontend
@@ -153,8 +145,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd backend && if [ -f package-lock.json ]; then npm ci; else npm install; fi
-        cd ../frontend && if [ -f package-lock.json ]; then npm ci; else npm install; fi
+        cd backend && npm ci
+        cd ../frontend && npm ci
 
     - name: Run security audit
       run: |
@@ -207,8 +199,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd backend && if [ -f package-lock.json ]; then npm ci; else npm install; fi
-        cd ../frontend && if [ -f package-lock.json ]; then npm ci; else npm install; fi
+        cd backend && npm ci
+        cd ../frontend && npm ci
 
     - name: Start backend server
       working-directory: ./backend
