@@ -107,8 +107,8 @@ class TransactionModel {
             created_at: new Date()
           };        
         } else if (type === 'deposit') {
-          // Debit amount from customer's balance first
-          await CustomerModel.updateBalance(customer_id, amount, 'debit');
+          // Credit amount to customer's balance
+          await CustomerModel.updateBalance(customer_id, amount, 'credit');
           
           // Record the transaction
           const result = await client.query(
@@ -131,15 +131,15 @@ class TransactionModel {
             balance: customerDetails.rows[0]?.balance
           });
           
-          // Send debit notification to customer (money deducted for deposit)
+          // Send credit notification to customer (money added to account)
           try {
             if (customerDetails.rows[0]?.email) {
               console.log(`Sending deposit notification to ${customerDetails.rows[0].email}`);
               await emailService.sendTransactionNotification({
                 to: customerDetails.rows[0].email,
-                subject: 'Debit Alert - Deposit',
+                subject: 'Credit Alert - Deposit',
                 transactionDetails: {
-                  type: 'debit', // Changed from 'deposit' to 'debit' to reflect money going out
+                  type: 'credit', // Changed to 'credit' since money is being added to customer's account
                   amount,
                   description,
                   balance: customerDetails.rows[0].balance,

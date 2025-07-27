@@ -179,7 +179,8 @@ const createCustomerDeposit = asyncHandler(async (req, res) => {
   
   // Find customer to ensure they exist
   const customer = await CustomerModel.findById(id);
-    // Create a deposit transaction
+  
+  // Create a deposit transaction (this will also update the customer's balance)
   const transaction = await TransactionModel.create({
     customer_id: id,
     amount: parseFloat(amount),
@@ -188,15 +189,15 @@ const createCustomerDeposit = asyncHandler(async (req, res) => {
     status: 'completed'
   });
   
-  // Update customer balance - this is now the only place where balance is updated for deposits
-  const updatedBalance = await CustomerModel.updateBalance(id, amount, 'credit');
+  // Get updated customer balance
+  const updatedCustomer = await CustomerModel.findById(id);
   
   res.status(201).json({
     success: true,
     message: 'Deposit added successfully',
     data: {
       transaction,
-      balance_after: updatedBalance.newBalance
+      balance_after: updatedCustomer.balance
     }
   });
 });
