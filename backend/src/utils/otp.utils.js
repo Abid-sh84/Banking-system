@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { pool, query } = require('../config/db.config');
 const { ApiError } = require('./error.utils');
 const emailService = require('./email.utils');
+const redisService = require('../services/redis.service');
 
 class OTPService {
   /**
@@ -15,7 +16,7 @@ class OTPService {
   }
 
   /**
-   * Save registration OTP and user data to the database
+   * Save registration OTP and user data to Redis (with database fallback)
    * @param {Object} userData - User registration data
    * @param {string} otp - The generated OTP
    * @returns {Promise} Promise that resolves when OTP is saved
@@ -24,10 +25,21 @@ class OTPService {
     const { name, email, password, address, phone, accountType } = userData;
     
     try {
+      // Store in Redis first (faster access)
+      await redisService.storeOTP(`registration:${email}`, otp, {
+        name,
+        email,
+        password,
+        address,
+        phone,
+        accountType: accountType || 'savings',
+        type: 'registration'
+      });
+
       // Set OTP to expire after 15 minutes
       const expiresAt = new Date(Date.now() + 15 * 60000); // 15 minutes
       
-      // Check if there's already an entry for this email
+      // Also store in database as backup (existing code for compatibility)
       const existingOTP = await query(
         'SELECT * FROM registration_otp WHERE email = $1',
         [email]
@@ -55,14 +67,43 @@ class OTPService {
   }
 
   /**
-   * Verify the OTP provided by the user
+   * Verify the OTP provided by the user (Redis first, database fallback)
    * @param {string} email - The user's email
    * @param {string} providedOTP - The OTP provided by the user
    * @returns {Promise<Object>} The user data if verification is successful
    */
   static async verifyOTP(email, providedOTP) {
     try {
-      // Get the stored OTP
+      // Try Redis first
+      const redisOtpData = await redisService.getOTP(`registration:${email}`);
+      
+      if (redisOtpData) {
+        // Check if too many attempts
+        if (redisOtpData.attempts >= 5) {
+          throw new ApiError(400, 'Too many failed attempts. Please request a new OTP.');
+        }
+        
+        // Check OTP validity
+        if (redisOtpData.otp !== providedOTP) {
+          // Increment attempt count
+          await redisService.incrementOTPAttempts(`registration:${email}`);
+          throw new ApiError(400, 'Invalid OTP. Please try again.');
+        }
+        
+        // OTP is valid, clean up Redis
+        await redisService.deleteOTP(`registration:${email}`);
+        
+        return {
+          name: redisOtpData.name,
+          email: redisOtpData.email,
+          password: redisOtpData.password,
+          address: redisOtpData.address,
+          phone: redisOtpData.phone,
+          accountType: redisOtpData.accountType
+        };
+      }
+
+      // Fallback to database if not in Redis
       const result = await query(
         'SELECT * FROM registration_otp WHERE email = $1',
         [email]

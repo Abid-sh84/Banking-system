@@ -2,27 +2,37 @@ const CustomerModel = require('../models/customer.model');
 const TransactionModel = require('../models/transaction.model');
 const { ApiError, asyncHandler } = require('../utils/error.utils');
 const { generateToken } = require('../utils/jwt.utils');
+const redisService = require('../services/redis.service');
 
-// Get customer profile
+// Get customer profile with Redis caching
 const getProfile = asyncHandler(async (req, res) => {
   const { id } = req.user;
   
-  const customer = await CustomerModel.findById(id);
+  // Try to get from Redis cache first
+  let customer = await redisService.getUserProfile(id, 'customer');
   
-  // Log the customer data to debug missing fields
-  console.log('Customer profile data:', {
-    id: customer.id, 
-    name: customer.name,
-    email: customer.email,
-    customer_id: customer.customer_id || 'Missing customer_id'
-  });
-  
-  // Ensure customer_id is included in the response
-  if (!customer.customer_id) {
-    // Generate a customer ID if it's missing
-    const customerId = 'CUST' + Math.floor(1000000000 + Math.random() * 9000000000).toString();
-    await CustomerModel.updateCustomerId(customer.id, customerId);
-    customer.customer_id = customerId;
+  if (!customer) {
+    // If not in cache, get from database
+    customer = await CustomerModel.findById(id);
+    
+    // Log the customer data to debug missing fields
+    console.log('Customer profile data:', {
+      id: customer.id, 
+      name: customer.name,
+      email: customer.email,
+      customer_id: customer.customer_id || 'Missing customer_id'
+    });
+    
+    // Ensure customer_id is included in the response
+    if (!customer.customer_id) {
+      // Generate a customer ID if it's missing
+      const customerId = 'CUST' + Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      await CustomerModel.updateCustomerId(customer.id, customerId);
+      customer.customer_id = customerId;
+    }
+    
+    // Cache the customer profile for future requests
+    await redisService.cacheUserProfile(id, 'customer', customer);
   }
   
   res.status(200).json({
@@ -32,6 +42,7 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 // Update customer profile
+// Update customer profile with cache invalidation
 const updateProfile = asyncHandler(async (req, res) => {
   const { id } = req.user;
   const { name, address, phone } = req.body;
@@ -41,6 +52,9 @@ const updateProfile = asyncHandler(async (req, res) => {
     address,
     phone
   });
+  
+  // Invalidate cached profile data
+  await redisService.invalidateUserProfile(id, 'customer');
   
   res.status(200).json({
     success: true,

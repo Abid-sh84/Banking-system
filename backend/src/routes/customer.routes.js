@@ -15,6 +15,7 @@ const {
 const { getCustomerCibilScore } = require('../controllers/cibil.controller');
 const { authenticate, authorize, checkUserStatus } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validation.middleware');
+const { rateLimiters, createUserRateLimit } = require('../middleware/rateLimit.middleware');
 
 /**
  * Note: This application supports both text-based chatbot and voice assistant functionality
@@ -73,17 +74,17 @@ router.use(authenticate);
 router.use(authorize('customer'));
 router.use(checkUserStatus);
 
-// Routes
-router.get('/profile', getProfile);
-router.put('/profile', validateRequest(updateProfileSchema), updateProfile);
-router.post('/change-password', validateRequest(changePasswordSchema), changePassword);
-router.get('/transactions', getTransactions);
-router.get('/transactions/:id', getTransactionById);
-router.post('/transactions', validateRequest(createTransactionSchema), createTransaction);
-router.get('/find-recipient', findRecipient);
-router.post('/transfer', validateRequest(transferSchema), transferMoney);
-router.get('/cibil-score', getCustomerCibilScore);
-router.post('/account-statement', validateRequest(accountStatementSchema), sendAccountStatement);
-router.post('/signout-all-sessions', signOutAllSessions);
+// Routes with rate limiting
+router.get('/profile', rateLimiters.general, getProfile);
+router.put('/profile', rateLimiters.general, validateRequest(updateProfileSchema), updateProfile);
+router.post('/change-password', rateLimiters.auth, validateRequest(changePasswordSchema), changePassword);
+router.get('/transactions', rateLimiters.general, getTransactions);
+router.get('/transactions/:id', rateLimiters.general, getTransactionById);
+router.post('/transactions', rateLimiters.transaction, validateRequest(createTransactionSchema), createTransaction);
+router.get('/find-recipient', rateLimiters.general, findRecipient);
+router.post('/transfer', rateLimiters.transaction, validateRequest(transferSchema), transferMoney);
+router.get('/cibil-score', createUserRateLimit(10, 60 * 60 * 1000), getCustomerCibilScore); // 10 requests per hour
+router.post('/account-statement', createUserRateLimit(5, 60 * 60 * 1000), validateRequest(accountStatementSchema), sendAccountStatement); // 5 requests per hour
+router.post('/signout-all-sessions', rateLimiters.auth, signOutAllSessions);
 
 module.exports = router;

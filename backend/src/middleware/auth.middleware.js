@@ -2,6 +2,7 @@ const { verifyToken } = require('../utils/jwt.utils');
 const { ApiError } = require('../utils/error.utils');
 const { asyncHandler } = require('../utils/error.utils');
 const { pool } = require('../config/db.config');
+const redisService = require('../services/redis.service');
 
 // Authentication middleware
 const authenticate = asyncHandler(async (req, res, next) => {
@@ -30,6 +31,14 @@ const authenticate = asyncHandler(async (req, res, next) => {
       id: decoded.id,
       role: decoded.role
     });
+    
+    // Update session activity in Redis (optional, for session tracking)
+    try {
+      await redisService.updateSessionActivity(decoded.id, decoded.role);
+    } catch (redisError) {
+      console.warn('Redis session update failed:', redisError.message);
+      // Continue without failing the request
+    }
     
     // Add user data to request
     req.user = decoded;

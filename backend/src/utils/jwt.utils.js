@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { ApiError } = require('./error.utils');
+const redisService = require('../services/redis.service');
 
 // Generate JWT token from environment variable
 const generateToken = (payload, expiresIn = '24h') => {
@@ -32,6 +33,12 @@ const generateToken = (payload, expiresIn = '24h') => {
 // Verify JWT token with the same fallback secret as generateToken
 const verifyToken = async (token) => {
   try {
+    // Check if token is blacklisted in Redis
+    const isBlacklisted = await redisService.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      throw new ApiError(401, 'Token has been invalidated');
+    }
+
     // Use the same secret (with fallback) as token generation
     const secret = process.env.JWT_SECRET;
     
@@ -85,7 +92,44 @@ const verifyToken = async (token) => {
   }
 };
 
+// Blacklist a token (for logout)
+const blacklistToken = async (token, expiresIn = '24h') => {
+  try {
+    // Calculate expiration time in seconds
+    let expirationSeconds = 86400; // Default 24 hours
+    
+    if (typeof expiresIn === 'string') {
+      const unit = expiresIn.slice(-1);
+      const value = parseInt(expiresIn.slice(0, -1));
+      
+      switch (unit) {
+        case 'h':
+          expirationSeconds = value * 3600;
+          break;
+        case 'm':
+          expirationSeconds = value * 60;
+          break;
+        case 's':
+          expirationSeconds = value;
+          break;
+        case 'd':
+          expirationSeconds = value * 86400;
+          break;
+        default:
+          expirationSeconds = 86400;
+      }
+    }
+    
+    await redisService.blacklistToken(token, expirationSeconds);
+    return true;
+  } catch (error) {
+    console.error('Error blacklisting token:', error);
+    return false;
+  }
+};
+
 module.exports = {
   generateToken,
-  verifyToken
+  verifyToken,
+  blacklistToken
 };

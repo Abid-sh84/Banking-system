@@ -11,6 +11,7 @@ dotenv.config();
 require('./utils/email-fix');
 
 const { pool, testConnection } = require('./config/db.config');
+const { connectRedis, disconnectRedis } = require('./config/redis.config');
 
 // Initialize express app
 const app = express();
@@ -47,12 +48,17 @@ app.get('/health', async (req, res) => {
     // Test database connection
     const dbStatus = await testConnection();
     
+    // Test Redis connection
+    const redisService = require('./services/redis.service');
+    const redisStatus = await redisService.healthCheck();
+    
     res.status(200).json({
       status: 'up',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
-      database: dbStatus ? 'connected' : 'disconnected'
+      database: dbStatus ? 'connected' : 'disconnected',
+      redis: redisStatus ? 'connected' : 'disconnected'
     });
   } catch (error) {
     res.status(500).json({
@@ -61,6 +67,7 @@ app.get('/health', async (req, res) => {
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
       database: 'error',
+      redis: 'error',
       error: error.message
     });
   }
@@ -132,6 +139,17 @@ app.listen(PORT, async () => {
   console.log(`- http://localhost:${PORT}/api/auth/register`);
   console.log(`- http://localhost:${PORT}/auth/login/customer (alternate)`);
   
+  // Initialize Redis connection
+  try {
+    console.log('Initializing Redis connection...');
+    await connectRedis();
+    console.log('Redis connection successful!');
+  } catch (redisError) {
+    console.warn('Redis connection failed, but server will continue running.');
+    console.warn('Caching and session features will use fallback methods.');
+    console.error('Redis connection error:', redisError.message);
+  }
+  
   try {
     // Test database connection with retries
     let connected = false;
@@ -180,4 +198,27 @@ app.listen(PORT, async () => {
     console.warn('Some features requiring database access will not work.');
     console.error('Connection error details:', error.message);
   }
+});
+
+// Graceful shutdown handlers
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  try {
+    await disconnectRedis();
+    console.log('Redis disconnected');
+  } catch (error) {
+    console.error('Error disconnecting Redis:', error);
+  }
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  try {
+    await disconnectRedis();
+    console.log('Redis disconnected');
+  } catch (error) {
+    console.error('Error disconnecting Redis:', error);
+  }
+  process.exit(0);
 });

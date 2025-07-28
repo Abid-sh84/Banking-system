@@ -1,9 +1,10 @@
 const CustomerModel = require('../models/customer.model');
 const BankerModel = require('../models/banker.model');
-const { generateToken, verifyToken } = require('../utils/jwt.utils');
+const { generateToken, verifyToken, blacklistToken } = require('../utils/jwt.utils');
 const { ApiError, asyncHandler } = require('../utils/error.utils');
 const bcrypt = require('bcrypt');
 const { pool } = require('../config/db.config');
+const redisService = require('../services/redis.service');
 
 // Customer registration - Step 1: Send OTP
 const registerCustomer = asyncHandler(async (req, res) => {
@@ -117,8 +118,21 @@ const loginCustomer = asyncHandler(async (req, res) => {
       token_version: customer.token_version || 0
     });
     
+    // Create session in Redis
+    try {
+      await redisService.createSession(customer.id, 'customer', {
+        email: customer.email,
+        name: customer.name,
+        status: customer.status
+      });
+      console.log('Redis session created for customer');
+    } catch (redisError) {
+      console.warn('Failed to create Redis session:', redisError.message);
+      // Continue without failing the login
+    }
+    
     // Remove sensitive data
-  delete customer.password;
+    delete customer.password;
   
   // Set cookie
   console.log('Setting cookie with token');
@@ -228,6 +242,20 @@ const loginBanker = asyncHandler(async (req, res) => {
       role: role
     });
     
+    // Create session in Redis
+    try {
+      await redisService.createSession(banker.id, role, {
+        email: banker.email,
+        name: banker.name,
+        role: banker.role,
+        status: banker.status
+      });
+      console.log('Redis session created for banker');
+    } catch (redisError) {
+      console.warn('Failed to create Redis session:', redisError.message);
+      // Continue without failing the login
+    }
+    
     // Remove sensitive data
     delete banker.password;
     
@@ -252,7 +280,32 @@ const loginBanker = asyncHandler(async (req, res) => {
 });
 
 // Logout
+// Logout with token blacklisting
 const logout = asyncHandler(async (req, res) => {
+  // Get token from cookie or header
+  const token = req.cookies.token || 
+    (req.headers.authorization && req.headers.authorization.startsWith('Bearer') 
+      ? req.headers.authorization.split(' ')[1] 
+      : null);
+
+  if (token) {
+    try {
+      // Blacklist the token in Redis
+      await blacklistToken(token);
+      console.log('Token blacklisted successfully');
+      
+      // If this is a customer, also try to destroy their session
+      if (req.user) {
+        await redisService.destroySession(req.user.id, req.user.role);
+        console.log('User session destroyed');
+      }
+    } catch (error) {
+      console.warn('Failed to blacklist token or destroy session:', error.message);
+      // Continue with logout even if Redis operations fail
+    }
+  }
+
+  // Clear the cookie
   res.cookie('token', '', {
     httpOnly: true,
     expires: new Date(0),
