@@ -2,7 +2,7 @@
  * Debug Authentication Module
  * 
  * This module provides utility functions for debugging authentication issues
- * NOTE: This file should NOT be included in production builds
+ * NOTE: This file should NOT be included in production builds just only for debug auth
  */
 
 import axios from 'axios';
