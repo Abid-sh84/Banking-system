@@ -1,3 +1,5 @@
+//vercel configuration 
+
 {
   "version": 2,
   "framework": "vite",
