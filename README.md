@@ -305,7 +305,7 @@ The application includes an advanced voice assistant that provides hands-free ba
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for more  details.
 
 ## 📞 Contact & Support
 
