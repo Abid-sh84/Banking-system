@@ -2,6 +2,10 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
