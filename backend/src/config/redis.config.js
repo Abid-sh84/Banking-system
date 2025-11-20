@@ -8,55 +8,66 @@ dotenv.config();
 let redisClient;
 
 const connectRedis = async () => {
+  // Skip Redis connection if URL is not provided or disabled
+  if (!process.env.REDIS_URL || process.env.REDIS_URL === 'disabled') {
+    console.warn('⚠️  Redis URL not configured - Running without Redis caching');
+    return null;
+  }
+
   try {
     // Create Redis client with connection string from environment
     redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
-      retry_strategy: (options) => {
-        if (options.error && options.error.code === 'ECONNREFUSED') {
-          console.error('Redis server refused the connection');
+      url: process.env.REDIS_URL,
+      socket: {
+        connectTimeout: 10000,
+        reconnectStrategy: (retries) => {
+          if (retries > 5) {
+            console.error('❌ Redis connection attempts exhausted');
+            return new Error('Max reconnection attempts reached');
+          }
+          const delay = Math.min(retries * 500, 3000);
+          console.log(`🔄 Retrying Redis connection in ${delay}ms (attempt ${retries + 1}/5)`);
+          return delay;
         }
-        if (options.total_retry_time > 1000 * 60 * 60) {
-          console.error('Redis retry time exhausted');
-          return new Error('Retry time exhausted');
-        }
-        if (options.attempt > 10) {
-          console.error('Redis connection attempts exhausted');
-          return undefined;
-        }
-        // Reconnect after
-        return Math.min(options.attempt * 100, 3000);
       }
     });
 
     // Event listeners
     redisClient.on('error', (err) => {
-      console.error('Redis Client Error:', err);
+      console.error('Redis Client Error:', err.message);
+      // Don't crash the app on Redis errors
     });
 
     redisClient.on('connect', () => {
-      console.log('Redis client connected successfully');
+      console.log('✅ Redis client connected successfully');
     });
 
     redisClient.on('ready', () => {
-      console.log('Redis client ready to use');
+      console.log('✅ Redis client ready to use');
     });
 
     redisClient.on('end', () => {
-      console.log('Redis client disconnected');
+      console.log('⚠️  Redis client disconnected');
     });
 
-    // Connect to Redis
-    await redisClient.connect();
+    // Connect to Redis with timeout
+    const connectPromise = redisClient.connect();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Redis connection timeout')), 15000)
+    );
+    
+    await Promise.race([connectPromise, timeoutPromise]);
     
     // Test the connection
     await redisClient.ping();
-    console.log('Redis connection test successful');
+    console.log('✅ Redis connection test successful');
     
     return redisClient;
   } catch (error) {
-    console.error('Failed to connect to Redis:', error);
-    throw error;
+    console.error('❌ Failed to connect to Redis:', error.message);
+    console.warn('⚠️  Application will continue without Redis caching');
+    redisClient = null;
+    return null;
   }
 };
 
@@ -71,7 +82,8 @@ const disconnectRedis = async () => {
 // Get Redis client instance
 const getRedisClient = () => {
   if (!redisClient) {
-    throw new Error('Redis client not initialized. Call connectRedis() first.');
+    console.warn('⚠️  Redis client not available - operations will be skipped');
+    return null;
   }
   return redisClient;
 };
@@ -82,11 +94,13 @@ const redisUtils = {
   set: async (key, value, expireInSeconds = 3600) => {
     try {
       const client = getRedisClient();
+      if (!client) return false; // Skip if Redis not available
+      
       const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
       await client.setEx(key, expireInSeconds, serializedValue);
       return true;
     } catch (error) {
-      console.error('Redis SET error:', error);
+      console.error('Redis SET error:', error.message);
       return false;
     }
   },
@@ -95,6 +109,8 @@ const redisUtils = {
   get: async (key) => {
     try {
       const client = getRedisClient();
+      if (!client) return null; // Skip if Redis not available
+      
       const value = await client.get(key);
       if (!value) return null;
       
@@ -104,7 +120,7 @@ const redisUtils = {
         return value; // Return as string if not JSON
       }
     } catch (error) {
-      console.error('Redis GET error:', error);
+      console.error('Redis GET error:', error.message);
       return null;
     }
   },
@@ -113,10 +129,12 @@ const redisUtils = {
   del: async (key) => {
     try {
       const client = getRedisClient();
+      if (!client) return false; // Skip if Redis not available
+      
       await client.del(key);
       return true;
     } catch (error) {
-      console.error('Redis DEL error:', error);
+      console.error('Redis DEL error:', error.message);
       return false;
     }
   },
@@ -125,10 +143,12 @@ const redisUtils = {
   exists: async (key) => {
     try {
       const client = getRedisClient();
+      if (!client) return false; // Skip if Redis not available
+      
       const result = await client.exists(key);
       return result === 1;
     } catch (error) {
-      console.error('Redis EXISTS error:', error);
+      console.error('Redis EXISTS error:', error.message);
       return false;
     }
   },
@@ -137,10 +157,12 @@ const redisUtils = {
   expire: async (key, seconds) => {
     try {
       const client = getRedisClient();
+      if (!client) return false; // Skip if Redis not available
+      
       await client.expire(key, seconds);
       return true;
     } catch (error) {
-      console.error('Redis EXPIRE error:', error);
+      console.error('Redis EXPIRE error:', error.message);
       return false;
     }
   },
@@ -149,9 +171,11 @@ const redisUtils = {
   incr: async (key) => {
     try {
       const client = getRedisClient();
+      if (!client) return null; // Skip if Redis not available
+      
       return await client.incr(key);
     } catch (error) {
-      console.error('Redis INCR error:', error);
+      console.error('Redis INCR error:', error.message);
       return null;
     }
   },
@@ -160,6 +184,8 @@ const redisUtils = {
   mget: async (keys) => {
     try {
       const client = getRedisClient();
+      if (!client) return []; // Skip if Redis not available
+      
       const values = await client.mGet(keys);
       return values.map(value => {
         if (!value) return null;
@@ -170,7 +196,7 @@ const redisUtils = {
         }
       });
     } catch (error) {
-      console.error('Redis MGET error:', error);
+      console.error('Redis MGET error:', error.message);
       return [];
     }
   },
@@ -179,6 +205,8 @@ const redisUtils = {
   mset: async (keyValuePairs) => {
     try {
       const client = getRedisClient();
+      if (!client) return false; // Skip if Redis not available
+      
       const serializedPairs = {};
       for (const [key, value] of Object.entries(keyValuePairs)) {
         serializedPairs[key] = typeof value === 'string' ? value : JSON.stringify(value);
@@ -186,7 +214,7 @@ const redisUtils = {
       await client.mSet(serializedPairs);
       return true;
     } catch (error) {
-      console.error('Redis MSET error:', error);
+      console.error('Redis MSET error:', error.message);
       return false;
     }
   },
@@ -195,9 +223,11 @@ const redisUtils = {
   keys: async (pattern) => {
     try {
       const client = getRedisClient();
+      if (!client) return []; // Skip if Redis not available
+      
       return await client.keys(pattern);
     } catch (error) {
-      console.error('Redis KEYS error:', error);
+      console.error('Redis KEYS error:', error.message);
       return [];
     }
   }
