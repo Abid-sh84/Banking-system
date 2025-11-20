@@ -1,7 +1,7 @@
 import api from './api';
 
 /**
- * Service for chatbot-related API calls for customer queries
+ * Service for chatbot-related API calls
  */
 export class ChatbotService {
   /**
